@@ -1,0 +1,33 @@
+name: pontoclick
+description: "PontoClick — controle de ponto simples e seguro."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # Tipografia Inter (Umbrel Design System)
+  google_fonts: ^6.2.1
+
+  # Geolocalização (GPS) para o card de presença na Home
+  geolocator: ^13.0.1
+
+  # Detecção de conexão online/offline
+  connectivity_plus: ^6.0.5
+
+  # Persistência local simples (tema escolhido, fila de pontos offline)
+  shared_preferences: ^2.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
