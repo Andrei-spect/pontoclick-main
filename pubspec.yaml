@@ -21,8 +21,18 @@ dependencies:
   # Detecção de conexão online/offline
   connectivity_plus: ^6.0.5
 
-  # Persistência local simples (tema escolhido, fila de pontos offline)
+  # Persistência local simples (tema escolhido, fila de pontos offline, sessão)
   shared_preferences: ^2.3.2
+
+  # Chamadas HTTP para a API do PontoClick
+  http: ^1.2.2
+
+  # Exportação do mês em PDF (tela de Registros)
+  pdf: ^3.11.1
+  printing: ^5.13.1
+
+  # Abrir links externos (LinkedIn na tela Sobre)
+  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:

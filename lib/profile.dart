@@ -9,6 +9,7 @@ import 'change_password.dart';
 import 'notifications.dart';
 import 'help_support.dart';
 import 'about.dart';
+import 'auth_service.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -130,8 +131,12 @@ class ProfileScreen extends StatelessWidget {
             child: Text('Cancelar', style: TextStyle(color: dialogContext.textSecondary)),
           ),
           TextButton(
-            onPressed: () => Navigator.pushAndRemoveUntil(
-                dialogContext, MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false),
+            onPressed: () async {
+              await AuthService().logout();
+              if (!dialogContext.mounted) return;
+              Navigator.pushAndRemoveUntil(
+                  dialogContext, MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
+            },
             child: const Text('Sair', style: TextStyle(color: AppColors.statusRed, fontWeight: FontWeight.bold)),
           ),
         ],

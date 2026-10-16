@@ -39,7 +39,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
   late Timer _clockTimer;
   DateTime _now = DateTime.now();
 
@@ -340,7 +339,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               IconButton(
                 icon: Icon(Icons.refresh_rounded, size: 16, color: context.textTertiary),
-                onPressed: () => setState(() => _loadingLocation = true) == null ? null : _loadLocation(),
+                onPressed: () {
+                  setState(() => _loadingLocation = true);
+                  _loadLocation();
+                },
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
@@ -423,7 +425,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ClipRRect(
           borderRadius: BorderRadius.circular(AppRadius.pills),
           child: LinearProgressIndicator(
-            value: (_workedToday.inSeconds / _dailyGoal.inSeconds).clamp(0, 1),
+            value: (_workedToday.inSeconds / _dailyGoal.inSeconds).clamp(0, 1).toDouble(),
             minHeight: 4,
             backgroundColor: Theme.of(context).dividerColor,
             valueColor: AlwaysStoppedAnimation(context.accentPeach),
@@ -557,14 +559,12 @@ class _HomeScreenState extends State<HomeScreen> {
           GestureDetector(
             onTap: () async {
               await Navigator.push(context, _fadeRoute(const RecordsScreen()));
-              setState(() => _currentIndex = 0);
             },
             child: Text('Registros', style: AppText.caption(color: context.textTertiary, weight: FontWeight.w500)),
           ),
           GestureDetector(
             onTap: () async {
               await Navigator.push(context, _fadeRoute(const ProfileScreen()));
-              setState(() => _currentIndex = 0);
             },
             child: Text('Perfil', style: AppText.caption(color: context.textTertiary, weight: FontWeight.w500)),
           ),
@@ -572,8 +572,4 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-}
-
-extension _FirstOrNull<T> on Iterable<T> {
-  T? get firstOrNull => isEmpty ? null : first;
 }

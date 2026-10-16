@@ -84,41 +84,45 @@ class AppRadius {
 class AppTheme {
   AppTheme._();
 
-  static ThemeData get dark => ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: AppColors.darkBg,
-        cardColor: AppColors.darkCard,
-        dividerColor: AppColors.darkDivider,
-        primaryColor: AppColors.twilightViolet,
-        fontFamily: GoogleFonts.inter().fontFamily,
-        colorScheme: const ColorScheme.dark(
-          primary: AppColors.twilightViolet,
-          secondary: AppColors.emberPeach,
-          surface: AppColors.darkCard,
-          onSurface: AppColors.darkTextPrimary,
-        ),
-        appBarTheme: const AppBarTheme(backgroundColor: Colors.transparent, elevation: 0),
-      );
+  static ThemeData get dark {
+    final base = ThemeData(
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: AppColors.darkBg,
+      cardColor: AppColors.darkCard,
+      dividerColor: AppColors.darkDivider,
+      primaryColor: AppColors.twilightViolet,
+      colorScheme: const ColorScheme.dark(
+        primary: AppColors.twilightViolet,
+        secondary: AppColors.emberPeach,
+        surface: AppColors.darkCard,
+        onSurface: AppColors.darkTextPrimary,
+      ),
+      appBarTheme: const AppBarTheme(backgroundColor: Colors.transparent, elevation: 0),
+    );
+    return base.copyWith(textTheme: GoogleFonts.interTextTheme(base.textTheme));
+  }
 
-  static ThemeData get light => ThemeData(
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: AppColors.lightBg,
-        cardColor: AppColors.lightCard,
-        dividerColor: AppColors.lightDivider,
-        primaryColor: AppColors.twilightViolet,
-        fontFamily: GoogleFonts.inter().fontFamily,
-        colorScheme: const ColorScheme.light(
-          primary: AppColors.twilightViolet,
-          secondary: AppColors.lightEmberPeach,
-          surface: AppColors.lightCard,
-          onSurface: AppColors.lightTextPrimary,
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          foregroundColor: AppColors.lightTextPrimary,
-        ),
-      );
+  static ThemeData get light {
+    final base = ThemeData(
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: AppColors.lightBg,
+      cardColor: AppColors.lightCard,
+      dividerColor: AppColors.lightDivider,
+      primaryColor: AppColors.twilightViolet,
+      colorScheme: const ColorScheme.light(
+        primary: AppColors.twilightViolet,
+        secondary: AppColors.lightEmberPeach,
+        surface: AppColors.lightCard,
+        onSurface: AppColors.lightTextPrimary,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: AppColors.lightTextPrimary,
+      ),
+    );
+    return base.copyWith(textTheme: GoogleFonts.interTextTheme(base.textTheme));
+  }
 }
 
 /// Acesso rápido às cores de texto/acento corretas para o tema atual,
