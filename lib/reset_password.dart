@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'app_theme.dart';
 import 'widgets.dart';
 import 'login.dart';
@@ -48,84 +49,180 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     await Future.delayed(const Duration(seconds: 1)); // TODO: chamar POST /auth/reset-password
     if (!mounted) return;
     setState(() => _isLoading = false);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Senha redefinida com sucesso!')));
+    AppFeedback.success(context, 'Senha redefinida com sucesso!');
     Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final contact = widget.contact.isEmpty ? (widget.method == 0 ? 'seu e-mail' : 'seu celular') : widget.contact;
     return Scaffold(
-      appBar: AppBar(leading: const AppBackButton()),
+      appBar: appSecondaryBar(null),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: AppColors.twilightViolet.withOpacity(0.16), shape: BoxShape.circle),
-                  child: const Icon(Icons.lock_reset_rounded, size: 34, color: AppColors.twilightViolet),
+          padding: const EdgeInsets.fromLTRB(AppSpace.xxl, 4, AppSpace.xxl, AppSpace.xxl),
+          child: AppContentWidth(
+            child: Form(
+              key: _formKey,
+              child: AutofillGroup(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Semantics(header: true, child: Text('Redefinir senha', style: AppText.heading())),
+                    const SizedBox(height: 6),
+                    Text.rich(
+                      TextSpan(children: [
+                        TextSpan(text: widget.method == 0 ? 'Crie uma nova senha para a conta ' : 'Digite o código enviado para '),
+                        TextSpan(text: contact, style: TextStyle(color: context.textPrimary, fontWeight: FontWeight.w500)),
+                        TextSpan(text: widget.method == 0 ? '.' : ' e crie uma nova senha.'),
+                      ]),
+                      style: AppText.bodySm(color: context.textSecondary).copyWith(height: 1.45),
+                    ),
+                    const SizedBox(height: 24),
+                    if (widget.method == 1) ...[
+                      Text('Código de verificação', style: AppText.label(color: context.textSecondary)),
+                      const SizedBox(height: 8),
+                      _CodeField(
+                        controller: _codeController,
+                        validator: (v) => (v == null || v.length < 4) ? 'Código inválido' : null,
+                      ),
+                      const SizedBox(height: 22),
+                    ],
+                    AppTextField(
+                      label: 'Nova senha',
+                      hint: 'Mínimo de 6 caracteres',
+                      icon: Icons.lock_outline,
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      textInputAction: TextInputAction.next,
+                      autofillHints: const [AutofillHints.newPassword],
+                      validator: _validatePassword,
+                      suffixIcon: AppPasswordToggle(
+                        obscured: _obscurePassword,
+                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    AppTextField(
+                      label: 'Confirmar nova senha',
+                      hint: 'Repita a nova senha',
+                      icon: Icons.lock_outline,
+                      controller: _confirmPasswordController,
+                      obscureText: _obscureConfirmPassword,
+                      textInputAction: TextInputAction.done,
+                      autofillHints: const [AutofillHints.newPassword],
+                      onFieldSubmitted: (_) => _handleSubmit(),
+                      validator: _validateConfirm,
+                      suffixIcon: AppPasswordToggle(
+                        obscured: _obscureConfirmPassword,
+                        onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    AppPrimaryButton(label: 'Redefinir senha', onPressed: _handleSubmit, isLoading: _isLoading),
+                  ],
                 ),
-                const SizedBox(height: 20),
-                Text('Redefinir Senha', style: AppText.heading()),
-                const SizedBox(height: 6),
-                Text(
-                  widget.method == 0
-                      ? 'Crie uma nova senha para sua conta ${widget.contact}'
-                      : 'Digite o código enviado para ${widget.contact} e crie uma nova senha',
-                  style: AppText.body(color: context.textSecondary),
-                ),
-                const SizedBox(height: 26),
-
-                if (widget.method == 1) ...[
-                  AppTextField(
-                    label: 'Código de Verificação',
-                    hint: '000000',
-                    icon: Icons.pin_outlined,
-                    controller: _codeController,
-                    keyboardType: TextInputType.number,
-                    maxLength: 6,
-                    validator: (v) => (v == null || v.length < 4) ? 'Código inválido' : null,
-                  ),
-                  const SizedBox(height: 18),
-                ],
-
-                AppTextField(
-                  label: 'Nova Senha',
-                  icon: Icons.lock_outline,
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  validator: _validatePassword,
-                  suffixIcon: IconButton(
-                    icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: context.textSecondary, size: 19),
-                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                AppTextField(
-                  label: 'Confirmar Nova Senha',
-                  icon: Icons.lock_outline,
-                  controller: _confirmPasswordController,
-                  obscureText: _obscureConfirmPassword,
-                  validator: _validateConfirm,
-                  suffixIcon: IconButton(
-                    icon: Icon(_obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: context.textSecondary, size: 19),
-                    onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                AppPrimaryButton(label: 'Redefinir Senha', onPressed: _handleSubmit, isLoading: _isLoading),
-                const SizedBox(height: 24),
-              ],
+              ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Código de 6 dígitos em caixas separadas. Por baixo é um único campo de
+/// texto (colar o código inteiro funciona), com a mesma validação de antes.
+class _CodeField extends StatefulWidget {
+  final TextEditingController controller;
+  final String? Function(String?) validator;
+  const _CodeField({required this.controller, required this.validator});
+
+  @override
+  State<_CodeField> createState() => _CodeFieldState();
+}
+
+class _CodeFieldState extends State<_CodeField> {
+  static const _length = 6;
+  final _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FormField<String>(
+      validator: (_) => widget.validator(widget.controller.text),
+      builder: (field) {
+        final text = widget.controller.text;
+        final errorColor = context.isDarkMode ? const Color(0xFFF87171) : const Color(0xFFC62828);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                Row(
+                  children: List.generate(_length, (i) {
+                    final active = _focusNode.hasFocus && (i == text.length || (i == _length - 1 && text.length == _length));
+                    final Color border = field.hasError
+                        ? AppColors.statusRed
+                        : (active ? AppColors.twilightViolet : Colors.transparent);
+                    return Expanded(
+                      child: Container(
+                        height: 56,
+                        margin: EdgeInsets.only(right: i == _length - 1 ? 0 : 8),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(AppRadius.cards),
+                          border: Border.all(color: border, width: 1.5),
+                        ),
+                        child: Text(i < text.length ? text[i] : '',
+                            style: AppText.numeric(AppText.headingSm(weight: FontWeight.w600))),
+                      ),
+                    );
+                  }),
+                ),
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: 0,
+                    child: TextField(
+                      controller: widget.controller,
+                      focusNode: _focusNode,
+                      keyboardType: TextInputType.number,
+                      autofillHints: const [AutofillHints.oneTimeCode],
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(_length)],
+                      showCursor: false,
+                      enableInteractiveSelection: false,
+                      decoration: const InputDecoration(border: InputBorder.none, counterText: ''),
+                      onChanged: (v) {
+                        field.didChange(v);
+                        setState(() {});
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (field.hasError) ...[
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Text(field.errorText!, style: AppText.caption(color: errorColor)),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }

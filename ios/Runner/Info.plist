@@ -26,6 +26,24 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>https</string>
+		<string>mailto</string>
+	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>O PontoClick usa sua localização no momento de bater o ponto para identificar o local de trabalho (ex.: Escritório Central).</string>
+	<key>NSCameraUsageDescription</key>
+	<string>O PontoClick usa a câmera para você tirar sua foto de perfil.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>O PontoClick acessa suas fotos para você escolher sua foto de perfil.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!-- Permite HTTP só na rede local (API rodando no PC durante o desenvolvimento).
+		     Em produção a API deve usar HTTPS. -->
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

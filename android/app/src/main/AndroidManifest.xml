@@ -1,4 +1,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Acesso à API do PontoClick. Os manifests de debug/profile já declaram,
+         mas o APK de release (Play Store) usa só este arquivo. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Detectar se o aparelho está online/offline (connectivity_plus). -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <!-- Localização no momento de bater o ponto (geolocator). Só em primeiro
+         plano: o app não rastreia o usuário em segundo plano. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- O app funciona em aparelhos sem GPS (usa rede/Wi-Fi ou registra sem local). -->
+    <uses-feature android:name="android.hardware.location.gps" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+
     <application
         android:label="pontoclick"
         android:name="${applicationName}"
@@ -40,6 +53,15 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Android 11+: necessário para abrir links externos (LinkedIn e e-mail na tela Sobre) com url_launcher. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SENDTO"/>
+            <data android:scheme="mailto"/>
         </intent>
     </queries>
 </manifest>

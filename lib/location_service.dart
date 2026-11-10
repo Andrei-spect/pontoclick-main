@@ -53,25 +53,29 @@ class LocationService {
   /// Busca a posição atual do GPS e confere se bate com algum local
   /// conhecido. Trata os casos de GPS desligado e permissão negada.
   Future<LocationResult> getCurrentLocation() async {
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      return const LocationResult(status: LocationStatus.serviceDisabled);
-    }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        return const LocationResult(status: LocationStatus.permissionDenied);
-      }
-    }
-    if (permission == LocationPermission.deniedForever) {
-      return const LocationResult(status: LocationStatus.permissionDeniedForever);
-    }
-
+    // Tudo dentro do try: se o plugin falhar (ex: permissão não declarada no
+    // AndroidManifest/Info.plist), a Home mostra o erro em vez de ficar
+    // presa em "Buscando localização...".
     try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return const LocationResult(status: LocationStatus.serviceDisabled);
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          return const LocationResult(status: LocationStatus.permissionDenied);
+        }
+      }
+      if (permission == LocationPermission.deniedForever) {
+        return const LocationResult(status: LocationStatus.permissionDeniedForever);
+      }
+
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        // Sem sinal de GPS (ex: ambiente fechado), desiste em 20 s em vez de esperar para sempre.
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 20)),
       );
 
       final match = _findKnownLocation(position.latitude, position.longitude);

@@ -31,6 +31,9 @@ dependencies:
   pdf: ^3.11.1
   printing: ^5.13.1
 
+  # Escolher foto de perfil na câmera ou na galeria
+  image_picker: ^1.1.2
+
   # Abrir links externos (LinkedIn na tela Sobre)
   url_launcher: ^6.3.0
 

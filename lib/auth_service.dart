@@ -3,12 +3,14 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_config.dart';
+import 'user_profile.dart';
 
 /// Erro vindo da API (mensagem já pronta para mostrar ao usuário) ou de
 /// problema de conexão (servidor fora do ar, sem internet, etc.).
 class ApiException implements Exception {
   final String message;
-  ApiException(this.message);
+  final int? statusCode;
+  ApiException(this.message, {this.statusCode});
   @override
   String toString() => message;
 }
@@ -65,7 +67,7 @@ class AuthService {
     }
 
     if (response.statusCode != expectedStatus) {
-      throw ApiException(data['error'] as String? ?? 'Ocorreu um erro. Tente novamente.');
+      throw ApiException(data['error'] as String? ?? 'Ocorreu um erro. Tente novamente.', statusCode: response.statusCode);
     }
     return data;
   }
@@ -73,6 +75,14 @@ class AuthService {
   Future<void> _saveSession(String token, Map<String, dynamic> user) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
+    await prefs.setString(_userKey, jsonEncode(user));
+    UserSession.current.value = UserProfile.fromJson(user);
+    UserSession.syncedWithServer.value = true; // acabou de vir da API (login/cadastro)
+  }
+
+  /// Guarda o perfil atualizado (usado após editar o perfil).
+  static Future<void> saveUser(Map<String, dynamic> user) async {
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_userKey, jsonEncode(user));
   }
 
@@ -93,5 +103,7 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_userKey);
+    UserSession.current.value = null;
+    UserSession.syncedWithServer.value = false;
   }
 }

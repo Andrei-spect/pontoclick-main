@@ -21,39 +21,46 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(leading: const AppBackButton(), title: Text('Notificações', style: AppText.body(weight: FontWeight.w600))),
+      appBar: appSecondaryBar('Notificações'),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          padding: const EdgeInsets.fromLTRB(AppSpace.page, 8, AppSpace.page, 28),
           children: [
-            const AppSectionLabel('LEMBRETES DE PONTO'),
-            const SizedBox(height: 8),
-            _buildSwitchCard(context, [
-              _SwitchItem('Lembrete de entrada', 'Avisar no horário de início do expediente', _lembreteEntrada,
-                  (v) => setState(() => _lembreteEntrada = v)),
-              _SwitchItem('Lembrete de intervalo', 'Avisar na hora do intervalo', _lembreteIntervalo,
-                  (v) => setState(() => _lembreteIntervalo = v)),
-              _SwitchItem('Lembrete de saída', 'Avisar no horário de fim do expediente', _lembreteSaida,
-                  (v) => setState(() => _lembreteSaida = v)),
-            ]),
-            const SizedBox(height: 24),
-            const AppSectionLabel('ALERTAS'),
-            const SizedBox(height: 8),
-            _buildSwitchCard(context, [
-              _SwitchItem('Alerta de atraso', 'Avisar quando um ponto não for registrado no horário', _alertaAtraso,
-                  (v) => setState(() => _alertaAtraso = v)),
-              _SwitchItem('Resumo semanal', 'Receber um resumo das horas trabalhadas', _resumoSemanal,
-                  (v) => setState(() => _resumoSemanal = v)),
-            ]),
-            const SizedBox(height: 24),
-            const AppSectionLabel('CANAIS'),
-            const SizedBox(height: 8),
-            _buildSwitchCard(context, [
-              _SwitchItem('Notificações push', 'Receber notificações no dispositivo', _notificacaoPush,
-                  (v) => setState(() => _notificacaoPush = v)),
-              _SwitchItem('Notificações por e-mail', 'Receber avisos também por e-mail', _notificacaoEmail,
-                  (v) => setState(() => _notificacaoEmail = v)),
-            ]),
+            AppContentWidth(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const AppSectionLabel('Lembretes de ponto'),
+                  const SizedBox(height: 8),
+                  _buildSwitchCard(context, [
+                    _SwitchItem('Lembrete de entrada', 'Avisar no horário de início do expediente', _lembreteEntrada,
+                        (v) => setState(() => _lembreteEntrada = v)),
+                    _SwitchItem('Lembrete de intervalo', 'Avisar na hora do intervalo', _lembreteIntervalo,
+                        (v) => setState(() => _lembreteIntervalo = v)),
+                    _SwitchItem('Lembrete de saída', 'Avisar no horário de fim do expediente', _lembreteSaida,
+                        (v) => setState(() => _lembreteSaida = v)),
+                  ]),
+                  const SizedBox(height: 22),
+                  const AppSectionLabel('Alertas'),
+                  const SizedBox(height: 8),
+                  _buildSwitchCard(context, [
+                    _SwitchItem('Alerta de atraso', 'Avisar quando um ponto não for registrado no horário', _alertaAtraso,
+                        (v) => setState(() => _alertaAtraso = v)),
+                    _SwitchItem('Resumo semanal', 'Receber um resumo das horas trabalhadas', _resumoSemanal,
+                        (v) => setState(() => _resumoSemanal = v)),
+                  ]),
+                  const SizedBox(height: 22),
+                  const AppSectionLabel('Canais'),
+                  const SizedBox(height: 8),
+                  _buildSwitchCard(context, [
+                    _SwitchItem('Notificações push', 'Receber avisos neste aparelho', _notificacaoPush,
+                        (v) => setState(() => _notificacaoPush = v)),
+                    _SwitchItem('Notificações por e-mail', 'Receber avisos também por e-mail', _notificacaoEmail,
+                        (v) => setState(() => _notificacaoEmail = v)),
+                  ]),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -61,33 +68,45 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Widget _buildSwitchCard(BuildContext context, List<_SwitchItem> items) {
-    return Container(
-      decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(AppRadius.cards)),
+    return Material(
+      color: Theme.of(context).cardColor,
+      borderRadius: BorderRadius.circular(AppRadius.cards),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         children: List.generate(items.length, (i) {
           final item = items[i];
           final isLast = i == items.length - 1;
           return Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+              MergeSemantics(
+                child: InkWell(
+                  onTap: () => item.onChanged(!item.value),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 64),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 10, 10),
+                      child: Row(
                         children: [
-                          Text(item.label, style: AppText.body(weight: FontWeight.w500).copyWith(fontSize: 14)),
-                          const SizedBox(height: 2),
-                          Text(item.subtitle, style: AppText.caption(color: context.textTertiary).copyWith(fontSize: 11)),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(item.label, style: AppText.bodySm(weight: FontWeight.w500)),
+                                const SizedBox(height: 3),
+                                Text(item.subtitle,
+                                    style: AppText.label(color: context.textTertiary, weight: FontWeight.w400)),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Switch(value: item.value, onChanged: item.onChanged),
                         ],
                       ),
                     ),
-                    Switch(value: item.value, onChanged: item.onChanged, activeColor: AppColors.twilightViolet),
-                  ],
+                  ),
                 ),
               ),
-              if (!isLast) Divider(height: 1, color: Theme.of(context).dividerColor, indent: 16, endIndent: 16),
+              if (!isLast) Divider(height: 1, thickness: 1, color: context.hairline, indent: 16, endIndent: 16),
             ],
           );
         }),
