@@ -7,6 +7,7 @@ import 'auth_service.dart';
 import 'api_client.dart';
 import 'user_service.dart';
 import 'widgets.dart';
+import 'notification_service.dart';
 
 /// Chaves globais: permitem trocar de tela e mostrar avisos de fora de um
 /// widget (usado quando a sessão expira no meio de uma chamada à API).
@@ -18,6 +19,7 @@ bool _loggingOut = false;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ThemeController.load();
+  await NotificationService.init(); // lembretes de ponto (só Android/iPhone; nas outras plataformas não faz nada)
 
   final token = await AuthService.getToken();
   if (token != null) {

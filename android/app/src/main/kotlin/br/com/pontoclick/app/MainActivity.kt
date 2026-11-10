@@ -1,4 +1,4 @@
-package com.example.pontoclick
+package br.com.pontoclick.app
 
 import io.flutter.embedding.android.FlutterActivity
 

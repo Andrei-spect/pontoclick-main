@@ -8,7 +8,7 @@
 PRODUCT_NAME = pontoclick
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.pontoclick
+PRODUCT_BUNDLE_IDENTIFIER = br.com.pontoclick.app
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.example. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 PontoClick. Todos os direitos reservados.

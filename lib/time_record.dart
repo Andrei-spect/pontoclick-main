@@ -62,6 +62,31 @@ PunchType? punchTypeFromWire(String? value) {
 String workDateOf(DateTime local) =>
     '${local.year.toString().padLeft(4, '0')}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
 
+/// Duração máxima de um turno (da entrada até a saída). Mesma regra da API.
+const maxShiftDuration = Duration(hours: 16);
+
+/// Dia de trabalho ao qual o PRÓXIMO ponto pertence.
+///
+/// Normalmente é hoje. Mas, se hoje ainda não tem pontos e há um turno aberto de
+/// um dia anterior (com entrada, sem os 4 pontos) cuja entrada foi há no máximo
+/// [maxShiftDuration], o turno da noite continua: o ponto vai para o dia da entrada.
+/// Ex: entrada 22:00 do dia 10 -> saída 06:00 do dia 11 fica no dia 10.
+String currentWorkDate(List<TimeRecord> records, DateTime now) {
+  final today = workDateOf(now);
+  if (records.any((r) => r.workDate == today)) return today;
+
+  final previousDays = records.map((r) => r.workDate).where((d) => d.compareTo(today) < 0).toSet().toList()..sort();
+  if (previousDays.isEmpty) return today;
+
+  final lastDay = previousDays.last;
+  final day = records.where((r) => r.workDate == lastDay).toList();
+  final entrada = day.where((r) => r.type == PunchType.entrada).firstOrNull;
+  if (entrada == null || day.length >= 4) return today;
+
+  final elapsed = now.difference(entrada.recordedAt);
+  return !elapsed.isNegative && elapsed <= maxShiftDuration ? lastDay : today;
+}
+
 String two(int n) => n.toString().padLeft(2, '0');
 
 /// "08:05"

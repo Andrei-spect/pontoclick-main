@@ -8,7 +8,54 @@ TimeRecord _r(PunchType type, int hour, int minute) => TimeRecord(
       workDate: '2026-11-09',
     );
 
+TimeRecord _at(PunchType type, DateTime when, String workDate) =>
+    TimeRecord(type: type, recordedAt: when, workDate: workDate);
+
 void main() {
+  group('currentWorkDate (turno da noite)', () {
+    test('sem pontos, o dia é hoje', () {
+      expect(currentWorkDate([], DateTime(2026, 11, 10, 9, 0)), '2026-11-10');
+    });
+
+    test('entrada às 22h: a saída depois da meia-noite fica no dia da entrada', () {
+      final records = [_at(PunchType.entrada, DateTime(2026, 11, 9, 22, 0), '2026-11-09')];
+      expect(currentWorkDate(records, DateTime(2026, 11, 10, 6, 0)), '2026-11-09');
+    });
+
+    test('entrada esquecida há mais de 16 h: abre um dia novo', () {
+      final records = [_at(PunchType.entrada, DateTime(2026, 11, 9, 8, 0), '2026-11-09')];
+      expect(currentWorkDate(records, DateTime(2026, 11, 10, 8, 0)), '2026-11-10');
+    });
+
+    test('turno de ontem já fechado: o dia é hoje', () {
+      final records = [
+        _at(PunchType.entrada, DateTime(2026, 11, 9, 22, 0), '2026-11-09'),
+        _at(PunchType.intervaloInicio, DateTime(2026, 11, 10, 1, 0), '2026-11-09'),
+        _at(PunchType.intervaloFim, DateTime(2026, 11, 10, 2, 0), '2026-11-09'),
+        _at(PunchType.saida, DateTime(2026, 11, 10, 6, 0), '2026-11-09'),
+      ];
+      expect(currentWorkDate(records, DateTime(2026, 11, 10, 7, 0)), '2026-11-10');
+    });
+
+    test('se hoje já tem ponto, o dia é hoje', () {
+      final records = [
+        _at(PunchType.entrada, DateTime(2026, 11, 9, 22, 0), '2026-11-09'),
+        _at(PunchType.entrada, DateTime(2026, 11, 10, 7, 0), '2026-11-10'),
+      ];
+      expect(currentWorkDate(records, DateTime(2026, 11, 10, 8, 0)), '2026-11-10');
+    });
+
+    test('horas de um turno que atravessa a meia-noite', () {
+      final day = [
+        _at(PunchType.entrada, DateTime(2026, 11, 9, 22, 0), '2026-11-09'),
+        _at(PunchType.intervaloInicio, DateTime(2026, 11, 10, 2, 0), '2026-11-09'),
+        _at(PunchType.intervaloFim, DateTime(2026, 11, 10, 3, 0), '2026-11-09'),
+        _at(PunchType.saida, DateTime(2026, 11, 10, 6, 0), '2026-11-09'),
+      ];
+      expect(workedDuration(day), const Duration(hours: 7));
+    });
+  });
+
   group('workedDuration', () {
     test('dia completo desconta o intervalo', () {
       final day = [

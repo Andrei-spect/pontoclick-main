@@ -48,10 +48,23 @@ class UserService {
   }
 
   /// PUT /users/change-password — troca a senha de quem está logado.
+  /// A API encerra as sessões dos outros aparelhos e devolve um token novo
+  /// para este continuar conectado.
   Future<void> changePassword({required String currentPassword, required String newPassword}) async {
-    await ApiClient.put('/users/change-password', {
+    final data = await ApiClient.put('/users/change-password', {
       'currentPassword': currentPassword,
       'newPassword': newPassword,
+    });
+    final token = data['token'];
+    if (token is String && token.isNotEmpty) await AuthService.saveToken(token);
+  }
+
+  /// POST /support — envia uma mensagem para o suporte (chega por e-mail para a equipe).
+  Future<void> sendSupportMessage({required String message, String? appVersion, String? platform}) async {
+    await ApiClient.post('/support', {
+      'message': message,
+      'appVersion': ?appVersion,
+      'platform': ?platform,
     });
   }
 

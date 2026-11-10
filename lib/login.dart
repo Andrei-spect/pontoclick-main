@@ -7,7 +7,9 @@ import 'register.dart';
 import 'forgot_password.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  /// E-mail já preenchido (ex: depois de redefinir a senha).
+  final String? initialEmail;
+  const LoginScreen({super.key, this.initialEmail});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -15,7 +17,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  late final _emailController = TextEditingController(text: widget.initialEmail ?? '');
   final _passwordController = TextEditingController();
   final _authService = AuthService();
   bool _obscurePassword = true;
@@ -97,8 +99,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton(
-                                onPressed: () =>
-                                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordScreen())),
+                                onPressed: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => ForgotPasswordScreen(initialEmail: _emailController.text.trim()))),
                                 child: Text('Esqueci minha senha', style: AppText.label(color: context.accentPeach)),
                               ),
                             ),

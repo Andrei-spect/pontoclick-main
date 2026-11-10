@@ -13,6 +13,8 @@ import 'time_record.dart';
 import 'records_service.dart';
 import 'main_shell.dart';
 import 'widgets.dart';
+import 'work_locations.dart';
+import 'notification_service.dart';
 
 const _breakLimitMinutes = 60;
 const _dailyGoal = Duration(hours: 8);
@@ -52,6 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     _loadLocation();
     _loadUser();
+    WorkLocations.load(); // locais de trabalho do usuário (cache + API)
     _bootstrap();
     RecordsEvents.changed.addListener(_loadRecords);
   }
@@ -95,6 +98,31 @@ class _HomeScreenState extends State<HomeScreen> {
     await _loadPending();
     await _initConnectivity();
     await _loadRecords();
+    await _setupReminders();
+  }
+
+  /// Carrega as preferências dos lembretes e, se estiverem ligadas, pede a
+  /// permissão do sistema (só aparece uma vez) e agenda os próximos avisos.
+  Future<void> _setupReminders() async {
+    await ReminderStore.load();
+    if (ReminderStore.settings.value.enabled) await NotificationService.requestPermission();
+    _remindersReady = true;
+    await _syncReminders();
+  }
+
+  bool _remindersReady = false; // só agenda depois de carregar as preferências do usuário
+
+  /// Reagenda os lembretes sem os pontos que já foram batidos no turno atual.
+  Future<void> _syncReminders() async {
+    if (!_remindersReady) return;
+    const keys = {
+      PunchType.entrada: 'entrada',
+      PunchType.intervaloInicio: 'intervalo',
+      PunchType.intervaloFim: 'volta',
+      PunchType.saida: 'saida',
+    };
+    NotificationService.doneToday = {for (final r in _dayRecords) ?keys[r.type]};
+    await NotificationService.reschedule();
   }
 
   Future<void> _initConnectivity() async {
@@ -142,6 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
       });
       if (e.statusCode != null) _showMessage('Não foi possível atualizar os pontos: ${e.message}', isError: true);
     }
+    await _syncReminders();
   }
 
   Future<void> _syncPending() async {
@@ -165,6 +194,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String get _todayKey => workDateOf(_now);
 
+  /// Dia de trabalho do turno atual: hoje, ou o dia anterior se o turno da noite
+  /// ainda está aberto (entrada há no máximo 16 h, sem saída).
+  String get _shiftKey => currentWorkDate(_allRecords, _now);
+
+  /// O turno em andamento começou num dia anterior (passou da meia-noite).
+  bool get _isOvernightShift => _shiftKey != _todayKey;
+
   /// Todos os pontos conhecidos (servidor + só no aparelho), sem repetir o mesmo
   /// tipo no mesmo dia, em ordem de horário.
   List<TimeRecord> get _allRecords {
@@ -178,7 +214,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return byKey.values.toList()..sort((a, b) => a.recordedAt.compareTo(b.recordedAt));
   }
 
-  List<TimeRecord> get _dayRecords => _allRecords.where((r) => r.workDate == _todayKey).toList();
+  List<TimeRecord> get _dayRecords {
+    final key = _shiftKey;
+    return _allRecords.where((r) => r.workDate == key).toList();
+  }
 
   PunchType get _nextPunchType {
     final count = _dayRecords.length;
@@ -191,7 +230,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() => _isPunching = true);
     final moment = DateTime.now();
-    final workDate = workDateOf(moment);
+    // Turno da noite: depois da meia-noite o ponto continua no dia da entrada.
+    final workDate = currentWorkDate(_allRecords, moment);
     // Mesmo id em qualquer tentativa: se a primeira chegou ao servidor e a resposta
     // se perdeu, reenviar depois não duplica o ponto.
     final clientId = '${type.wire}-${moment.toUtc().toIso8601String()}';
@@ -249,6 +289,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } finally {
       if (mounted) setState(() => _isPunching = false);
+      await _syncReminders(); // ponto batido: o lembrete dele não precisa mais aparecer hoje
     }
   }
 
@@ -271,9 +312,10 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Horas do mês: dias fechados (com saída) + o dia de hoje em andamento.
   Duration get _monthWorked {
     final prefix = _todayKey.substring(0, 7); // "2026-10"
+    final shiftKey = _shiftKey; // o turno em andamento entra pelo cálculo com a hora atual, abaixo
     final byDay = <String, List<TimeRecord>>{};
     for (final r in _allRecords) {
-      if (r.workDate.startsWith(prefix) && r.workDate != _todayKey) {
+      if (r.workDate.startsWith(prefix) && r.workDate != shiftKey) {
         byDay.putIfAbsent(r.workDate, () => []).add(r);
       }
     }
@@ -287,6 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Ontem tem entrada mas ficou sem saída.
   bool get _yesterdayMissingExit {
     final key = workDateOf(DateTime(_now.year, _now.month, _now.day - 1));
+    if (key == _shiftKey) return false; // turno da noite ainda em andamento: não é "esquecido"
     final day = _allRecords.where((r) => r.workDate == key).toList();
     return day.any((r) => r.type == PunchType.entrada) && !day.any((r) => r.type == PunchType.saida);
   }
@@ -462,7 +505,7 @@ class _HomeScreenState extends State<HomeScreen> {
       subtitle = 'Local identificado';
     } else if (result?.isOk == true) {
       title = 'Local não identificado';
-      subtitle = 'Fora dos locais cadastrados';
+      subtitle = WorkLocations.items.value.isEmpty ? 'Toque para cadastrar seus locais' : 'Fora dos locais cadastrados';
       titleColor = context.textPrimary;
     } else {
       title = 'Não foi possível obter a localização';
@@ -473,7 +516,14 @@ class _HomeScreenState extends State<HomeScreen> {
       subtitle = '$subtitle · precisão de ${result!.accuracyMeters!.toStringAsFixed(0)} m';
     }
 
-    return AppCard(
+    // O cartão abre "Locais de trabalho": ali dá para cadastrar o local onde a pessoa está.
+    return Material(
+      color: Theme.of(context).cardColor,
+      borderRadius: BorderRadius.circular(AppRadius.cards),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkLocationsScreen())),
+        child: Padding(
       padding: const EdgeInsets.fromLTRB(14, 10, 4, 10),
       child: Row(
         children: [
@@ -503,6 +553,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
           ),
         ],
+      ),
+        ),
       ),
     );
   }
@@ -537,7 +589,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Trabalhado hoje', style: AppText.label(color: context.textSecondary, weight: FontWeight.w400)),
+                    Text(_isOvernightShift ? 'Trabalhado no turno' : 'Trabalhado hoje',
+                        style: AppText.label(color: context.textSecondary, weight: FontWeight.w400)),
                     const SizedBox(height: 2),
                     _loadingRecords
                         ? const Padding(padding: EdgeInsets.only(top: 6, bottom: 4), child: AppSkeleton(width: 96, height: 22))
@@ -590,7 +643,16 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Semantics(header: true, child: Text('Resumo do dia', style: AppText.bodySm(weight: FontWeight.w600))),
+          Semantics(
+            header: true,
+            child: Text(_isOvernightShift ? 'Turno iniciado ontem' : 'Resumo do dia',
+                style: AppText.bodySm(weight: FontWeight.w600)),
+          ),
+          if (_isOvernightShift) ...[
+            const SizedBox(height: 2),
+            Text('Os pontos depois da meia-noite continuam neste turno.',
+                style: AppText.caption(color: context.textTertiary)),
+          ],
           const SizedBox(height: 6),
           for (var i = 0; i < types.length; i++)
             _buildTimelineRow(context, types[i], isLast: i == types.length - 1, showLateWarning: saidaPendingLate && types[i] == PunchType.saida),

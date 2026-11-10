@@ -5,18 +5,22 @@ plugins {
 }
 
 android {
-    namespace = "com.example.pontoclick"
-    compileSdk = flutter.compileSdkVersion
+    namespace = "br.com.pontoclick.app"
+    // 37: exigido pelo flutter_local_notifications 23 e androidx.core 1.19 (só para compilar;
+    // o Android mínimo e o alvo continuam os padrões do Flutter, logo abaixo).
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // Exigido pelo flutter_local_notifications (lembretes agendados em Androids antigos).
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.pontoclick"
+        applicationId = "br.com.pontoclick.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -46,4 +50,8 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

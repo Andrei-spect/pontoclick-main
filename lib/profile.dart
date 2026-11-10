@@ -8,6 +8,7 @@ import 'main_shell.dart';
 import 'edit_profile.dart';
 import 'change_password.dart';
 import 'notifications.dart';
+import 'work_locations.dart';
 import 'help_support.dart';
 import 'about.dart';
 import 'auth_service.dart';
@@ -81,6 +82,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       icon: Icons.person_outline_rounded, label: 'Editar perfil', onTap: () => _open(const EditProfileScreen())),
                   AppMenuItemData(
                       icon: Icons.lock_outline_rounded, label: 'Alterar senha', onTap: () => _open(const ChangePasswordScreen())),
+                  AppMenuItemData(
+                      icon: Icons.location_on_outlined,
+                      label: 'Locais de trabalho',
+                      onTap: () => _open(const WorkLocationsScreen())),
                   AppMenuItemData(
                       icon: Icons.notifications_none_rounded,
                       label: 'Notificações',

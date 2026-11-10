@@ -247,11 +247,16 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   String get _todayKey => workDateOf(DateTime.now());
 
+  /// Dia do turno em andamento (hoje, ou ontem se o turno da noite ainda está aberto).
+  String get _openShiftKey => currentWorkDate(_byDay.values.expand((list) => list).toList(), DateTime.now());
+
+  bool _isInProgress(String key) => key == _todayKey || key == _openShiftKey;
+
   bool _hasExit(List<TimeRecord> list) => list.any((r) => r.type == PunchType.saida);
 
-  /// Dia passado com entrada e sem saída (hoje ainda está em andamento).
+  /// Dia passado com entrada e sem saída (o turno em andamento não conta).
   bool _isMissingExit(String key, List<TimeRecord> list) =>
-      key != _todayKey && list.any((r) => r.type == PunchType.entrada) && !_hasExit(list);
+      !_isInProgress(key) && list.any((r) => r.type == PunchType.entrada) && !_hasExit(list);
 
   Duration get _monthTotal {
     var total = Duration.zero;
@@ -489,7 +494,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
     String? totalText;
     if (hasExit) {
       totalText = 'Total ${formatHours(workedDuration(list))}';
-    } else if (key == _todayKey && list.isNotEmpty) {
+    } else if (_isInProgress(key) && list.isNotEmpty) {
       totalText = 'Em andamento';
     }
 

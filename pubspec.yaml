@@ -36,6 +36,9 @@ dependencies:
 
   # Abrir links externos (LinkedIn na tela Sobre)
   url_launcher: ^6.3.0
+  flutter_local_notifications: ^23.0.0
+  timezone: ^0.11.2
+  flutter_timezone: ^5.1.1
 
 dev_dependencies:
   flutter_test:
