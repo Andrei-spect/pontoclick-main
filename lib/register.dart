@@ -3,6 +3,8 @@ import 'app_theme.dart';
 import 'widgets.dart';
 import 'auth_service.dart';
 import 'main_shell.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'api_config.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -139,7 +141,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 24),
                     AppPrimaryButton(label: 'Criar conta', onPressed: _handleRegister, isLoading: _isLoading),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
+                    Center(
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text('Ao criar a conta, você concorda com a',
+                              style: AppText.caption(color: context.textTertiary)),
+                          TextButton(
+                            onPressed: () => launchUrl(Uri.parse(ApiConfig.privacyPolicyUrl), mode: LaunchMode.externalApplication),
+                            style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 4)),
+                            child: Text('Política de privacidade',
+                                style: AppText.caption(color: context.accentPeach, weight: FontWeight.w600)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
                     Wrap(
                       alignment: WrapAlignment.center,
                       crossAxisAlignment: WrapCrossAlignment.center,

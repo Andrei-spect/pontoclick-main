@@ -11,6 +11,7 @@ import 'notifications.dart';
 import 'work_locations.dart';
 import 'help_support.dart';
 import 'about.dart';
+import 'delete_account.dart';
 import 'auth_service.dart';
 import 'app_avatar.dart';
 import 'user_profile.dart';
@@ -108,7 +109,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ]),
                 const SizedBox(height: 28),
                 AppDangerButton(label: 'Sair da conta', icon: Icons.logout_rounded, onPressed: () => _confirmLogout(context)),
-                const SizedBox(height: 14),
+                const SizedBox(height: 4),
+                Center(
+                  child: TextButton(
+                    onPressed: () => _open(const DeleteAccountScreen()),
+                    child: Text('Excluir conta', style: AppText.label(color: context.textTertiary)),
+                  ),
+                ),
                 Center(child: Text('PontoClick versão ${AboutScreen.appVersion}', style: AppText.caption(color: context.textTertiary))),
               ],
             ),

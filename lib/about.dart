@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'app_theme.dart';
 import 'widgets.dart';
+import 'api_config.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -86,6 +87,16 @@ class AboutScreen extends StatelessWidget {
                     label: 'linkedin.com/in/andrei-barbosa',
                     accent: context.accentPeach,
                     onTap: () => _abrir(context, Uri.parse(_linkedinUrl)),
+                  ),
+                ]),
+                const SizedBox(height: 22),
+                const AppSectionLabel('Privacidade'),
+                const SizedBox(height: 8),
+                AppMenuCard(items: [
+                  AppMenuItemData(
+                    icon: Icons.privacy_tip_outlined,
+                    label: 'Política de privacidade',
+                    onTap: () => _abrir(context, Uri.parse(ApiConfig.privacyPolicyUrl)),
                   ),
                 ]),
                 const SizedBox(height: 28),

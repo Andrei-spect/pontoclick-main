@@ -23,7 +23,15 @@ class ApiConfig {
   static const bool _usePhysicalDevice = false;
   static const String _physicalDeviceUrl = 'http://192.168.0.10:3000';
 
+  /// PRODUÇÃO: a URL da API hospedada é passada na hora de compilar, sem mexer
+  /// no código. Ex:
+  ///   flutter build appbundle --dart-define=API_URL=https://api.pontoclick.com.br
+  ///   flutter build ipa       --dart-define=API_URL=https://api.pontoclick.com.br
+  /// Sem API_URL, vale a escolha automática de desenvolvimento abaixo.
+  static const String _productionUrl = String.fromEnvironment('API_URL');
+
   static String get baseUrl {
+    if (_productionUrl.isNotEmpty) return _productionUrl;
     if (_usePhysicalDevice) return _physicalDeviceUrl;
     if (kIsWeb) {
       final host = Uri.base.host.isEmpty ? 'localhost' : Uri.base.host;
@@ -32,4 +40,8 @@ class ApiConfig {
     if (defaultTargetPlatform == TargetPlatform.android) return 'http://10.0.2.2:3000';
     return 'http://localhost:3000';
   }
+
+  /// Páginas públicas servidas pela API (exigidas pelas lojas).
+  static String get privacyPolicyUrl => '$baseUrl/privacidade';
+  static String get accountDeletionUrl => '$baseUrl/excluir-conta';
 }

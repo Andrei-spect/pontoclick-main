@@ -37,8 +37,13 @@ class ApiClient {
         ),
       );
 
-  static Future<Map<String, dynamic>> delete(String path) =>
-      _request(path, (uri, headers) => http.delete(uri, headers: headers));
+  /// [body] opcional (ex: senha para confirmar a exclusão da conta).
+  static Future<Map<String, dynamic>> delete(String path, [Map<String, dynamic>? body]) => _request(
+        path,
+        (uri, headers) => body == null
+            ? http.delete(uri, headers: headers)
+            : http.delete(uri, headers: {...headers, 'Content-Type': 'application/json'}, body: jsonEncode(body)),
+      );
 
   /// Envia um arquivo (multipart/form-data). [field] é o nome do campo que a API espera.
   /// Usa bytes (e não um caminho de arquivo) para funcionar também no navegador.

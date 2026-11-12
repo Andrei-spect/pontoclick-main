@@ -90,8 +90,25 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
     await prefs.setString(_userKey, jsonEncode(user));
+    // Lembra o e-mail para preencher o Login na próxima vez (só o e-mail, nunca a senha).
+    final email = user['email'];
+    if (email is String && email.isNotEmpty) await prefs.setString(_lastEmailKey, email);
     UserSession.current.value = UserProfile.fromJson(user);
     UserSession.syncedWithServer.value = true; // acabou de vir da API (login/cadastro)
+  }
+
+  static const _lastEmailKey = 'last_login_email';
+
+  /// Último e-mail que entrou neste aparelho (continua salvo depois de sair da conta).
+  static Future<String?> getLastEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_lastEmailKey);
+  }
+
+  /// Esquece o e-mail salvo (ex: ao excluir a conta).
+  static Future<void> clearLastEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_lastEmailKey);
   }
 
   /// Guarda o perfil atualizado (usado após editar o perfil).

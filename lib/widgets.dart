@@ -80,6 +80,7 @@ class AppTextField extends StatelessWidget {
   final int? maxLength;
   final String? Function(String?)? validator;
   final String? labelSuffix; // ex: "(opcional)"
+  final FocusNode? focusNode;
 
   const AppTextField({
     super.key,
@@ -98,6 +99,7 @@ class AppTextField extends StatelessWidget {
     this.maxLength,
     this.validator,
     this.labelSuffix,
+    this.focusNode,
   });
 
   @override
@@ -121,6 +123,7 @@ class AppTextField extends StatelessWidget {
         const SizedBox(height: 7),
         TextFormField(
           controller: controller,
+          focusNode: focusNode,
           obscureText: obscureText,
           keyboardType: keyboardType,
           textInputAction: textInputAction,

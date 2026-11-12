@@ -19,14 +19,30 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   late final _emailController = TextEditingController(text: widget.initialEmail ?? '');
   final _passwordController = TextEditingController();
+  final _passwordFocus = FocusNode();
   final _authService = AuthService();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    _fillLastEmail();
+  }
+
+  /// Preenche com o último e-mail que entrou neste aparelho e já leva o cursor para a senha.
+  Future<void> _fillLastEmail() async {
+    final email = widget.initialEmail ?? await AuthService.getLastEmail();
+    if (!mounted || email == null || email.isEmpty) return;
+    if (_emailController.text.isEmpty) _emailController.text = email;
+    _passwordFocus.requestFocus();
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
@@ -84,6 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             AppTextField(
                               label: 'Senha',
                               hint: 'Sua senha',
+                              focusNode: _passwordFocus,
                               icon: Icons.lock_outline,
                               controller: _passwordController,
                               obscureText: _obscurePassword,

@@ -1,8 +1,27 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'api_client.dart';
 import 'auth_service.dart';
 import 'user_profile.dart';
 
 class UserService {
+  /// DELETE /users/me — exclui a conta e todos os dados no servidor (sem volta).
+  /// Depois apaga do aparelho o que era desta conta (cache de pontos, fila
+  /// offline, locais, preferências) e encerra a sessão.
+  Future<void> deleteAccount({required String password}) async {
+    final user = await AuthService.getUser();
+    await ApiClient.delete('/users/me', {'password': password});
+
+    final id = user?['id'];
+    if (id != null) {
+      final prefs = await SharedPreferences.getInstance();
+      for (final key in prefs.getKeys().where((k) => k.endsWith(':$id')).toList()) {
+        await prefs.remove(key);
+      }
+    }
+    await AuthService.clearLastEmail(); // conta excluída: não preencher mais o Login com esse e-mail
+    await AuthService().logout();
+  }
+
   /// Preenche o perfil com o que foi salvo no login: instantâneo e funciona
   /// mesmo sem internet. Se já houver um perfil carregado, não faz nada.
   Future<void> loadCached() async {
