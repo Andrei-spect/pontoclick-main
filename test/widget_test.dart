@@ -77,6 +77,29 @@ void main() {
     });
   });
 
+  group('horas extras', () {
+    test('só conta o que passa da meta de 8h', () {
+      expect(overtimeOf(const Duration(hours: 8, minutes: 32)), const Duration(minutes: 32));
+      expect(overtimeOf(const Duration(hours: 8)), Duration.zero);
+      expect(overtimeOf(const Duration(hours: 6)), Duration.zero); // dia curto não fica negativo
+    });
+
+    test('dia completo com 9h02 trabalhadas tem 1h02 extra', () {
+      final day = [
+        _r(PunchType.entrada, 8, 0),
+        _r(PunchType.intervaloInicio, 12, 0),
+        _r(PunchType.intervaloFim, 13, 0),
+        _r(PunchType.saida, 18, 2),
+      ];
+      expect(overtimeOf(workedDuration(day)), const Duration(hours: 1, minutes: 2));
+    });
+
+    test('formatação com sinal de +', () {
+      expect(formatOvertime(const Duration(minutes: 45)), '+0h 45m');
+      expect(formatOvertime(Duration.zero), '0h 00m');
+    });
+  });
+
   test('formatação de horários', () {
     expect(formatHours(const Duration(hours: 5, minutes: 9)), '5h 09m');
     expect(formatClock(DateTime(2026, 1, 1, 7, 5)), '07:05');

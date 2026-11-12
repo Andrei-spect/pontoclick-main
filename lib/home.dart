@@ -17,7 +17,7 @@ import 'work_locations.dart';
 import 'notification_service.dart';
 
 const _breakLimitMinutes = 60;
-const _dailyGoal = Duration(hours: 8);
+const _dailyGoal = dailyWorkGoal; // meta diária (time_record.dart): também define as horas extras
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -367,6 +367,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       _buildMainCta(context),
                       const SizedBox(height: 12),
                       _buildWorkedCard(context),
+                      const SizedBox(height: 12),
+                      _buildOvertimeCard(context),
                       if (_yesterdayMissingExit) ...[
                         const SizedBox(height: 12),
                         const AppNotice(
@@ -571,6 +573,66 @@ class _HomeScreenState extends State<HomeScreen> {
       color: isDone ? AppColors.statusGreenStrong : info!.buttonColor,
       isLoading: _isPunching,
       onPressed: isDone || _loadingRecords ? null : _registrarPonto,
+    );
+  }
+
+  /// Cartão "Horas extras hoje": mesmo formato do "Trabalhado hoje", mostrando
+  /// o tempo trabalhado além da meta diária (sem limite máximo).
+  Widget _buildOvertimeCard(BuildContext context) {
+    final worked = _workedToday;
+    final overtime = overtimeOf(worked, goal: _dailyGoal);
+    final hasEntry = _dayRecords.any((r) => r.type == PunchType.entrada);
+    final finished = _dayRecords.any((r) => r.type == PunchType.saida);
+
+    final String note;
+    if (!hasEntry) {
+      note = 'As horas extras começam a contar depois de ${_dailyGoal.inHours}h trabalhadas.';
+    } else if (overtime == Duration.zero) {
+      note = finished ? 'Nenhuma hora extra hoje.' : 'Começa a contar em ${formatHours(_dailyGoal - worked)}.';
+    } else {
+      note = finished ? 'Além da meta de ${_dailyGoal.inHours}h do dia.' : 'Contando agora.';
+    }
+
+    return AppCard(
+      child: Semantics(
+        label: 'Horas extras ${_isOvernightShift ? 'no turno' : 'hoje'}: ${formatHours(overtime)}. $note',
+        excludeSemantics: true,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_isOvernightShift ? 'Horas extras no turno' : 'Horas extras hoje',
+                          style: AppText.label(color: context.textSecondary, weight: FontWeight.w400)),
+                      const SizedBox(height: 2),
+                      _loadingRecords
+                          ? const Padding(padding: EdgeInsets.only(top: 6, bottom: 4), child: AppSkeleton(width: 96, height: 22))
+                          : Text(
+                              formatOvertime(overtime),
+                              style: AppText.numeric(AppText.headingSm(
+                                color: overtime > Duration.zero ? context.violetText : context.textPrimary,
+                              ).copyWith(fontSize: 24)),
+                            ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text('após ${_dailyGoal.inHours}h',
+                      style: AppText.numeric(AppText.label(color: context.textTertiary, weight: FontWeight.w400))),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(note, style: AppText.label(color: context.textSecondary, weight: FontWeight.w400)),
+          ],
+        ),
+      ),
     );
   }
 

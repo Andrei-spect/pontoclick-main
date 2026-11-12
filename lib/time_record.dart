@@ -65,6 +65,16 @@ String workDateOf(DateTime local) =>
 /// Duração máxima de um turno (da entrada até a saída). Mesma regra da API.
 const maxShiftDuration = Duration(hours: 16);
 
+/// Meta diária de trabalho. O que passar disso no dia conta como hora extra.
+const dailyWorkGoal = Duration(hours: 8);
+
+/// Horas extras de um dia: o que foi trabalhado além da meta diária (nunca negativo).
+Duration overtimeOf(Duration worked, {Duration goal = dailyWorkGoal}) =>
+    worked > goal ? worked - goal : Duration.zero;
+
+/// "+1h 05m" para horas extras (sem sinal quando é zero).
+String formatOvertime(Duration d) => d > Duration.zero ? '+${formatHours(d)}' : formatHours(d);
+
 /// Dia de trabalho ao qual o PRÓXIMO ponto pertence.
 ///
 /// Normalmente é hoje. Mas, se hoje ainda não tem pontos e há um turno aberto de

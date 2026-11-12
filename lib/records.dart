@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'app_theme.dart';
 import 'widgets.dart';
 import 'auth_service.dart';
 import 'main_shell.dart';
+import 'month_report.dart';
 import 'records_service.dart';
 import 'time_record.dart';
 import 'user_profile.dart';
@@ -188,52 +188,14 @@ class _RecordsScreenState extends State<RecordsScreen> {
     setState(() => _exporting = true);
     try {
       final user = UserSession.current.value;
-      final keys = _byDay.keys.toList()..sort();
-      var monthTotal = Duration.zero;
-      final body = <pw.Widget>[];
-
-      for (final key in keys) {
-        final list = _byDay[key]!;
-        final worked = workedDuration(list);
-        monthTotal += worked;
-        final date = DateTime.parse(key);
-        body.addAll(<pw.Widget>[
-          pw.Text('${two(date.day)}/${two(date.month)}/${date.year} - ${_dias[date.weekday - 1]}',
-              style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-          pw.SizedBox(height: 3),
-          for (final r in list)
-            pw.Text(
-              '${punchTypeInfo[r.type]?.label ?? ''}: ${formatClock(r.recordedAt)}'
-              '${r.edited ? ' (editado)' : ''}${r.locationName != null ? ' - ${r.locationName}' : ''}',
-              style: const pw.TextStyle(fontSize: 10),
-            ),
-          if (worked > Duration.zero)
-            pw.Text('Total do dia: ${formatHours(worked)}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-          pw.SizedBox(height: 10),
-        ]);
-      }
-
-      final doc = pw.Document();
-      doc.addPage(
-        pw.MultiPage(
-          build: (context) => <pw.Widget>[
-            pw.Text('PontoClick - Registros de ponto', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-            pw.SizedBox(height: 4),
-            pw.Text('${_meses[_focusedMonth.month - 1]} de ${_focusedMonth.year}', style: const pw.TextStyle(fontSize: 12)),
-            if (user != null) pw.Text('Funcionário: ${user.name} (${user.email})', style: const pw.TextStyle(fontSize: 10)),
-            pw.SizedBox(height: 16),
-            if (keys.isEmpty) pw.Text('Nenhum registro neste mês.', style: const pw.TextStyle(fontSize: 12)),
-            ...body,
-            if (keys.isNotEmpty) ...<pw.Widget>[
-              pw.Divider(),
-              pw.Text('Total de horas no mês (dias com entrada e saída): ${formatHours(monthTotal)}',
-                  style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-            ],
-          ],
-        ),
+      final bytes = await buildMonthReportPdf(
+        year: _focusedMonth.year,
+        month: _focusedMonth.month,
+        byDay: _byDay,
+        userName: user?.name,
+        userEmail: user?.email,
       );
-
-      await Printing.layoutPdf(onLayout: (format) => doc.save());
+      await Printing.layoutPdf(onLayout: (format) async => bytes);
     } catch (_) {
       _showMessage('Não foi possível gerar o PDF.', isError: true);
     } finally {
