@@ -17,7 +17,6 @@ import 'work_locations.dart';
 import 'notification_service.dart';
 
 const _breakLimitMinutes = 60;
-const _dailyGoal = dailyWorkGoal; // meta diária (time_record.dart): também define as horas extras
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -197,6 +196,10 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Dia de trabalho do turno atual: hoje, ou o dia anterior se o turno da noite
   /// ainda está aberto (entrada há no máximo 16 h, sem saída).
   String get _shiftKey => currentWorkDate(_allRecords, _now);
+
+  /// Meta do dia de trabalho atual (sábado: 4 h, turno da manhã; demais dias: 8 h).
+  /// Também define as horas extras.
+  Duration get _dailyGoal => workGoalForWorkDate(_shiftKey);
 
   /// O turno em andamento começou num dia anterior (passou da meia-noite).
   bool get _isOvernightShift => _shiftKey != _todayKey;

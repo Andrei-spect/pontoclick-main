@@ -21,6 +21,11 @@ void main() {
       '2026-11-10': _day('2026-11-10', (8, 0), (18, 30)), // 9h30 — +1h30
       '2026-11-11': _day('2026-11-11', (7, 45), (17, 30)), // 8h45 — +0h45
       '2026-11-12': [_r(PunchType.entrada, '2026-11-12', 8, 0)], // sem saída — não conta
+      '2026-11-14': [
+        // sábado: só turno da manhã, meta de 4h — 4h30 trabalhadas = +0h30
+        _r(PunchType.entrada, '2026-11-14', 8, 0),
+        _r(PunchType.saida, '2026-11-14', 12, 30),
+      ],
     };
 
     final bytes = await buildMonthReportPdf(

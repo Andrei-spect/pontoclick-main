@@ -68,6 +68,16 @@ const maxShiftDuration = Duration(hours: 16);
 /// Meta diária de trabalho. O que passar disso no dia conta como hora extra.
 const dailyWorkGoal = Duration(hours: 8);
 
+/// Meta de sábado: a jornada é só o turno da manhã (4 h).
+const saturdayWorkGoal = Duration(hours: 4);
+
+/// Meta de trabalho de um dia conforme o dia da semana.
+Duration workGoalFor(DateTime day) =>
+    day.weekday == DateTime.saturday ? saturdayWorkGoal : dailyWorkGoal;
+
+/// Igual a [workGoalFor], a partir do work_date da API ("2026-11-14").
+Duration workGoalForWorkDate(String workDate) => workGoalFor(DateTime.parse(workDate));
+
 /// Horas extras de um dia: o que foi trabalhado além da meta diária (nunca negativo).
 Duration overtimeOf(Duration worked, {Duration goal = dailyWorkGoal}) =>
     worked > goal ? worked - goal : Duration.zero;

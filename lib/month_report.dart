@@ -30,7 +30,7 @@ Future<Uint8List> buildMonthReportPdf({
   for (final key in keys) {
     final list = byDay[key]!;
     final worked = workedDuration(list);
-    final overtime = overtimeOf(worked);
+    final overtime = overtimeOf(worked, goal: workGoalForWorkDate(key));
     monthTotal += worked;
     overtimeTotal += overtime;
     if (overtime > Duration.zero) overtimeDays++;
@@ -93,7 +93,7 @@ Future<Uint8List> buildMonthReportPdf({
           summary,
           pw.SizedBox(height: 4),
           pw.Text(
-            'Horas extras: tempo trabalhado além da meta de ${dailyWorkGoal.inHours}h em cada dia com entrada e saída.',
+            'Horas extras: tempo trabalhado além da meta do dia (${dailyWorkGoal.inHours}h; sábado: ${saturdayWorkGoal.inHours}h, turno da manhã) em cada dia com entrada e saída.',
             style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
           ),
           pw.SizedBox(height: 16),
