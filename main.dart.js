@@ -102991,7 +102991,7 @@ case 4:if(a.e!=null)B.cw(a,"N\xe3o foi poss\xedvel abrir o link.",A.bi)
 case 3:return B.q(null,r)}})
 return B.r($async$pJ,r)},
 I(a){var s,r,q,p,o,n=null,m=B.kS("Sobre"),l=B.eA(new B.B5(34,B.B9(A.dD),n),n,n),k=B.l(a),j=B.bM(99)
-k=B.eA(B.d4(n,B.a4("Vers\xe3o 1.0.5",n,n,n,B.da(B.l(a).ax.a===A.C?A.az:A.ay,A.aF),n,n,n),A.a5,n,n,new B.c4(k.at,n,n,j,n,n,A.bj),n,n,n,A.TO,n,n,n),n,n)
+k=B.eA(B.d4(n,B.a4("Vers\xe3o 1.0.6",n,n,n,B.da(B.l(a).ax.a===A.C?A.az:A.ay,A.aF),n,n,n),A.a5,n,n,new B.c4(k.at,n,n,j,n,n,A.bj),n,n,n,A.TO,n,n,n),n,n)
 j=B.it(B.a4("O PontoClick \xe9 um app de controle de ponto simples e seguro, pensado para profissionais que est\xe3o sempre em movimento. Registre entradas, intervalos e sa\xeddas em poucos toques, de onde voc\xea estiver.",n,n,n,B.cs(B.l(a).ax.a===A.C?A.az:A.ay,n).kF(1.55),n,n,n),A.vv)
 s=B.a4("Andrei Barbosa",n,n,n,B.cs(n,A.aF),n,n,n)
 r=t.p
@@ -103765,7 +103765,7 @@ m.L(new B.ay3(m))
 p=4
 k=m.e
 s=7
-return B.j(m.f.A1("1.0.5",A.n.dO(k.a.a),"web"),$async$Ca)
+return B.j(m.f.A1("1.0.6",A.n.dO(k.a.a),"web"),$async$Ca)
 case 7:if(m.c==null){n=[1]
 s=5
 break}k.my(A.MF)
@@ -105186,7 +105186,7 @@ m.push(A.jk)
 m.push(new B.B2("Sair da conta",A.pB,new B.aCN(p,a),o))
 m.push(A.fh)
 m.push(B.eA(B.hb(B.a4("Excluir conta",o,o,o,B.bV(B.l(a).ax.a===A.C?A.aj:A.ak,o),o,o,o),new B.aCO(p),o),o,o))
-m.push(B.eA(B.a4("PontoClick vers\xe3o 1.0.5",o,o,o,B.da(B.l(a).ax.a===A.C?A.aj:A.ak,o),o,o,o),o,o))
+m.push(B.eA(B.a4("PontoClick vers\xe3o 1.0.6",o,o,o,B.da(B.l(a).ax.a===A.C?A.aj:A.ak,o),o,o,o),o,o))
 return B.h7(o,B.e8(!1,B.iY(new B.eh(B.aS(m,A.af,A.I,A.N,0,A.S),o),new B.a3(20,12,20,n.r.d+24),o,o,A.aY),A.aB,!0),o,!1)},
 ae6(a){return new B.fS($.kW(),new B.aCz(this),null,null,t.qM)},
 afD(a){var s=null
