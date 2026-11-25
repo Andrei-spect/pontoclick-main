@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:pdf/pdf.dart' show PdfColors;
 import 'package:pdf/widgets.dart' as pw;
 import 'time_record.dart';
+import 'work_schedule.dart';
 
 const _meses = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -18,6 +19,7 @@ Future<Uint8List> buildMonthReportPdf({
   required int year,
   required int month,
   required Map<String, List<TimeRecord>> byDay,
+  WorkSchedule schedule = WorkSchedule.defaults,
   String? userName,
   String? userEmail,
 }) {
@@ -30,7 +32,7 @@ Future<Uint8List> buildMonthReportPdf({
   for (final key in keys) {
     final list = byDay[key]!;
     final worked = workedDuration(list);
-    final overtime = overtimeOf(worked, goal: workGoalForWorkDate(key));
+    final overtime = overtimeOf(worked, goal: schedule.goalForWorkDate(key));
     monthTotal += worked;
     overtimeTotal += overtime;
     if (overtime > Duration.zero) overtimeDays++;
@@ -93,7 +95,8 @@ Future<Uint8List> buildMonthReportPdf({
           summary,
           pw.SizedBox(height: 4),
           pw.Text(
-            'Horas extras: tempo trabalhado além da meta do dia (${dailyWorkGoal.inHours}h; sábado: ${saturdayWorkGoal.inHours}h, turno da manhã) em cada dia com entrada e saída.',
+            'Horas extras: tempo trabalhado além da meta do dia, pelo horário cadastrado '
+            '(${_scheduleSummary(schedule)}), em cada dia com entrada e saída. Em dia de folga, todo o tempo conta como extra.',
             style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
           ),
           pw.SizedBox(height: 16),
@@ -114,4 +117,12 @@ Future<Uint8List> buildMonthReportPdf({
     ),
   );
   return doc.save();
+}
+
+/// "seg-sex 08:00-17:00, meta 8h; sáb 08:00-12:00, meta 4h; dom folga"
+String _scheduleSummary(WorkSchedule s) {
+  String shift(ShiftHours h) => '${h.entrada}-${h.saida}, meta ${formatGoal(h.workDuration)}';
+  return 'seg-sex ${shift(s.weekdays)}; '
+      'sáb ${s.saturday ? shift(s.weekend) : 'folga'}; '
+      'dom ${s.sunday ? shift(s.weekend) : 'folga'}';
 }

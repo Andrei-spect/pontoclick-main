@@ -15,8 +15,9 @@ import 'main_shell.dart';
 import 'widgets.dart';
 import 'work_locations.dart';
 import 'notification_service.dart';
+import 'work_schedule.dart';
 
-const _breakLimitMinutes = 60;
+const _defaultBreakMinutes = 60; // quando o horário do dia não tem intervalo (ou é folga)
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -54,6 +55,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadLocation();
     _loadUser();
     WorkLocations.load(); // locais de trabalho do usuário (cache + API)
+    ScheduleStore.load(); // horário de trabalho: define a meta do dia (cache + API)
+    ScheduleStore.schedule.addListener(_onScheduleChanged);
     _bootstrap();
     RecordsEvents.changed.addListener(_loadRecords);
   }
@@ -63,7 +66,12 @@ class _HomeScreenState extends State<HomeScreen> {
     _clockTimer.cancel();
     _connectivitySub?.cancel();
     RecordsEvents.changed.removeListener(_loadRecords);
+    ScheduleStore.schedule.removeListener(_onScheduleChanged);
     super.dispose();
+  }
+
+  void _onScheduleChanged() {
+    if (mounted) setState(() {});
   }
 
   void _showMessage(String text, {bool isError = false}) {
@@ -197,9 +205,11 @@ class _HomeScreenState extends State<HomeScreen> {
   /// ainda está aberto (entrada há no máximo 16 h, sem saída).
   String get _shiftKey => currentWorkDate(_allRecords, _now);
 
-  /// Meta do dia de trabalho atual (sábado: 4 h, turno da manhã; demais dias: 8 h).
-  /// Também define as horas extras.
-  Duration get _dailyGoal => workGoalForWorkDate(_shiftKey);
+  /// Meta do dia de trabalho atual, pelo horário do usuário (Perfil > Meu horário).
+  /// Também define as horas extras. Zero = dia de folga.
+  Duration get _dailyGoal => ScheduleStore.schedule.value.goalForWorkDate(_shiftKey);
+
+  bool get _isDayOff => _dailyGoal == Duration.zero;
 
   /// O turno em andamento começou num dia anterior (passou da meia-noite).
   bool get _isOvernightShift => _shiftKey != _todayKey;
@@ -310,6 +320,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final start = _dayRecords.where((r) => r.type == PunchType.intervaloInicio).firstOrNull;
     if (start == null) return 0;
     return _breakLimitMinutes - _now.difference(start.recordedAt).inMinutes;
+  }
+
+  /// Duração do intervalo no horário do usuário para o dia do turno atual.
+  int get _breakLimitMinutes {
+    final shift = ScheduleStore.schedule.value.shiftFor(DateTime.parse(_shiftKey));
+    final minutes = shift?.intervaloMin ?? 0;
+    return minutes > 0 ? minutes : _defaultBreakMinutes;
   }
 
   /// Horas do mês: dias fechados (com saída) + o dia de hoje em andamento.
@@ -587,13 +604,18 @@ class _HomeScreenState extends State<HomeScreen> {
     final hasEntry = _dayRecords.any((r) => r.type == PunchType.entrada);
     final finished = _dayRecords.any((r) => r.type == PunchType.saida);
 
+    final goalText = formatGoal(_dailyGoal);
     final String note;
-    if (!hasEntry) {
-      note = 'As horas extras começam a contar depois de ${_dailyGoal.inHours}h trabalhadas.';
+    if (_isDayOff) {
+      note = hasEntry
+          ? 'Dia de folga no seu horário: todo o tempo trabalhado conta como extra.'
+          : 'Dia de folga no seu horário. Se trabalhar, todo o tempo conta como extra.';
+    } else if (!hasEntry) {
+      note = 'As horas extras começam a contar depois de $goalText trabalhadas.';
     } else if (overtime == Duration.zero) {
       note = finished ? 'Nenhuma hora extra hoje.' : 'Começa a contar em ${formatHours(_dailyGoal - worked)}.';
     } else {
-      note = finished ? 'Além da meta de ${_dailyGoal.inHours}h do dia.' : 'Contando agora.';
+      note = finished ? 'Além da meta de $goalText do dia.' : 'Contando agora.';
     }
 
     return AppCard(
@@ -626,7 +648,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 4),
-                  child: Text('após ${_dailyGoal.inHours}h',
+                  child: Text(_isDayOff ? 'folga' : 'após $goalText',
                       style: AppText.numeric(AppText.label(color: context.textTertiary, weight: FontWeight.w400))),
                 ),
               ],
@@ -641,7 +663,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildWorkedCard(BuildContext context) {
     final worked = _workedToday;
-    final percent = (worked.inSeconds / _dailyGoal.inSeconds).clamp(0, 1).toDouble();
+    final percent = _isDayOff
+        ? (worked > Duration.zero ? 1.0 : 0.0)
+        : (worked.inSeconds / _dailyGoal.inSeconds).clamp(0, 1).toDouble();
 
     return AppCard(
       child: Column(
@@ -665,7 +689,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
-                child: Text('meta de ${_dailyGoal.inHours}h · ${(percent * 100).round()}%',
+                child: Text(_isDayOff ? 'dia de folga' : 'meta de ${formatGoal(_dailyGoal)} · ${(percent * 100).round()}%',
                     style: AppText.numeric(AppText.label(color: context.textTertiary, weight: FontWeight.w400))),
               ),
             ],

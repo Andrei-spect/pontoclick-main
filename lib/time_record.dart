@@ -65,22 +65,18 @@ String workDateOf(DateTime local) =>
 /// Duração máxima de um turno (da entrada até a saída). Mesma regra da API.
 const maxShiftDuration = Duration(hours: 16);
 
-/// Meta diária de trabalho. O que passar disso no dia conta como hora extra.
-const dailyWorkGoal = Duration(hours: 8);
-
-/// Meta de sábado: a jornada é só o turno da manhã (4 h).
-const saturdayWorkGoal = Duration(hours: 4);
-
-/// Meta de trabalho de um dia conforme o dia da semana.
-Duration workGoalFor(DateTime day) =>
-    day.weekday == DateTime.saturday ? saturdayWorkGoal : dailyWorkGoal;
-
-/// Igual a [workGoalFor], a partir do work_date da API ("2026-11-14").
-Duration workGoalForWorkDate(String workDate) => workGoalFor(DateTime.parse(workDate));
-
-/// Horas extras de um dia: o que foi trabalhado além da meta diária (nunca negativo).
-Duration overtimeOf(Duration worked, {Duration goal = dailyWorkGoal}) =>
+/// Horas extras de um dia: o que foi trabalhado além da meta do dia (nunca negativo).
+/// A meta vem do horário do usuário (WorkSchedule.goalForWorkDate, em work_schedule.dart).
+Duration overtimeOf(Duration worked, {required Duration goal}) =>
     worked > goal ? worked - goal : Duration.zero;
+
+/// Meta do dia para textos curtos: "8h", "8h 48m", "30m".
+String formatGoal(Duration d) {
+  final h = d.inHours, m = d.inMinutes.remainder(60);
+  if (m == 0) return '${h}h';
+  if (h == 0) return '${m}m';
+  return '${h}h ${two(m)}m';
+}
 
 /// "+1h 05m" para horas extras (sem sinal quando é zero).
 String formatOvertime(Duration d) => d > Duration.zero ? '+${formatHours(d)}' : formatHours(d);

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:pontoclick/month_report.dart';
 import 'package:pontoclick/time_record.dart';
+import 'package:pontoclick/work_schedule.dart';
 
 TimeRecord _r(PunchType type, String day, int hour, int minute) =>
     TimeRecord(type: type, recordedAt: DateTime.parse('${day}T${two(hour)}:${two(minute)}:00'), workDate: day);
@@ -32,6 +33,7 @@ void main() {
       year: 2026,
       month: 11,
       byDay: byDay,
+      schedule: WorkSchedule.defaults.copyWith(sunday: true),
       userName: 'Teste Extras',
       userEmail: 'teste@pontoclick.test',
     );

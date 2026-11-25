@@ -78,10 +78,12 @@ void main() {
   });
 
   group('horas extras', () {
+    const meta8h = Duration(hours: 8);
+
     test('só conta o que passa da meta de 8h', () {
-      expect(overtimeOf(const Duration(hours: 8, minutes: 32)), const Duration(minutes: 32));
-      expect(overtimeOf(const Duration(hours: 8)), Duration.zero);
-      expect(overtimeOf(const Duration(hours: 6)), Duration.zero); // dia curto não fica negativo
+      expect(overtimeOf(const Duration(hours: 8, minutes: 32), goal: meta8h), const Duration(minutes: 32));
+      expect(overtimeOf(const Duration(hours: 8), goal: meta8h), Duration.zero);
+      expect(overtimeOf(const Duration(hours: 6), goal: meta8h), Duration.zero); // dia curto não fica negativo
     });
 
     test('dia completo com 9h02 trabalhadas tem 1h02 extra', () {
@@ -91,7 +93,7 @@ void main() {
         _r(PunchType.intervaloFim, 13, 0),
         _r(PunchType.saida, 18, 2),
       ];
-      expect(overtimeOf(workedDuration(day)), const Duration(hours: 1, minutes: 2));
+      expect(overtimeOf(workedDuration(day), goal: meta8h), const Duration(hours: 1, minutes: 2));
     });
 
     test('formatação com sinal de +', () {

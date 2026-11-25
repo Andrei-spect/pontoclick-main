@@ -8,6 +8,7 @@ import 'month_report.dart';
 import 'records_service.dart';
 import 'time_record.dart';
 import 'user_profile.dart';
+import 'work_schedule.dart';
 
 class RecordsScreen extends StatefulWidget {
   const RecordsScreen({super.key});
@@ -192,6 +193,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
         year: _focusedMonth.year,
         month: _focusedMonth.month,
         byDay: _byDay,
+        schedule: ScheduleStore.schedule.value,
         userName: user?.name,
         userEmail: user?.email,
       );
