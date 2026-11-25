@@ -48,13 +48,20 @@ class _RecordsScreenState extends State<RecordsScreen> {
     // A aba fica montada desde o início (IndexedStack): só busca os dados quando
     // ela aparece, e busca de novo a cada vez que o usuário volta para ela.
     MainShell.tab.addListener(_onTabChanged);
+    ScheduleStore.schedule.addListener(_onScheduleChanged);
     if (MainShell.tab.value == 1) _loadMonth();
   }
 
   @override
   void dispose() {
     MainShell.tab.removeListener(_onTabChanged);
+    ScheduleStore.schedule.removeListener(_onScheduleChanged);
     super.dispose();
+  }
+
+  /// Horário mudou: as horas extras do mês são refeitas com a meta nova.
+  void _onScheduleChanged() {
+    if (mounted) setState(() {});
   }
 
   void _onTabChanged() {
@@ -71,6 +78,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
   Future<void> _loadMonth() async {
     final token = ++_loadToken;
     final month = _focusedMonth;
+    // Pega o horário mais recente (pode ter mudado em outro aparelho); o listener redesenha.
+    ScheduleStore.load();
     setState(() {
       _loading = true;
       _error = null;
@@ -188,6 +197,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
     setState(() => _exporting = true);
     try {
+      // As horas extras do PDF são recalculadas com o horário atual: busca a versão
+      // mais recente (pode ter sido alterada em outro aparelho). Sem internet, usa a cópia salva.
+      await ScheduleStore.load();
       final user = UserSession.current.value;
       final bytes = await buildMonthReportPdf(
         year: _focusedMonth.year,
@@ -226,6 +238,21 @@ class _RecordsScreenState extends State<RecordsScreen> {
     var total = Duration.zero;
     for (final list in _byDay.values) {
       if (_hasExit(list)) total += workedDuration(list);
+    }
+    return total;
+  }
+
+  /// Horas extras de um dia fechado (com saída), pela meta do horário atual.
+  Duration _overtimeOfDay(String key, List<TimeRecord> list) => _hasExit(list)
+      ? overtimeOf(workedDuration(list), goal: ScheduleStore.schedule.value.goalForWorkDate(key))
+      : Duration.zero;
+
+  /// Soma das horas extras do mês (mesma regra do PDF). Sempre recalculada com o
+  /// horário atual: mudar o horário refaz a soma.
+  Duration get _monthOvertime {
+    var total = Duration.zero;
+    for (final e in _byDay.entries) {
+      total += _overtimeOfDay(e.key, e.value);
     }
     return total;
   }
@@ -299,6 +326,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
     final today = DateTime.now();
     final todayKey = workDateOf(today);
     final missing = _missingExitDays;
+    final overtime = _monthOvertime;
 
     return AppCard(
       padding: const EdgeInsets.fromLTRB(12, 6, 12, 14),
@@ -325,14 +353,25 @@ class _RecordsScreenState extends State<RecordsScreen> {
           const SizedBox(height: 6),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
+            child: Column(
               children: [
-                _buildSummaryTile(context, 'Horas no mês', formatHours(_monthTotal), valueColor: context.accentPeach),
-                const SizedBox(width: 8),
-                _buildSummaryTile(context, 'Dias com ponto', '${_byDay.length}'),
-                const SizedBox(width: 8),
-                _buildSummaryTile(context, 'Sem saída', '$missing',
-                    valueColor: missing > 0 ? AppColors.statusOrange : null),
+                Row(
+                  children: [
+                    _buildSummaryTile(context, 'Horas no mês', formatHours(_monthTotal), valueColor: context.accentPeach),
+                    const SizedBox(width: 8),
+                    _buildSummaryTile(context, 'Horas extras', formatOvertime(overtime),
+                        valueColor: overtime > Duration.zero ? context.violetText : null),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _buildSummaryTile(context, 'Dias com ponto', '${_byDay.length}'),
+                    const SizedBox(width: 8),
+                    _buildSummaryTile(context, 'Sem saída', '$missing',
+                        valueColor: missing > 0 ? AppColors.statusOrange : null),
+                  ],
+                ),
               ],
             ),
           ),
@@ -455,9 +494,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
     final missingExit = list.isNotEmpty && _isMissingExit(key, list);
     final dateText = '${_dias[_selectedDate.weekday - 1]}, ${two(_selectedDate.day)}/${two(_selectedDate.month)}';
 
+    final dayOvertime = _overtimeOfDay(key, list);
     String? totalText;
     if (hasExit) {
       totalText = 'Total ${formatHours(workedDuration(list))}';
+      if (dayOvertime > Duration.zero) totalText += ' · extra ${formatOvertime(dayOvertime)}';
     } else if (_isInProgress(key) && list.isNotEmpty) {
       totalText = 'Em andamento';
     }
