@@ -7,7 +7,7 @@ import 'api_config.dart';
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
-  static const appVersion = '1.0.0';
+  static const appVersion = '1.0.5';
   static const _linkedinUrl = 'https://www.linkedin.com/in/andrei-barbosa-7ba99a22a/';
   static const _email = 'andrei.barbosa009@gmail.com';
 

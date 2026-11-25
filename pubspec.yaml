@@ -1,7 +1,7 @@
 name: pontoclick
 description: "PontoClick — controle de ponto simples e seguro."
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.5+5
 
 environment:
   sdk: ^3.13.0
