@@ -46,7 +46,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: appSecondaryBar(null),
+      appBar: appSecondaryBar('Recuperar senha', parent: 'Entrar'),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(AppSpace.xxl, 4, AppSpace.xxl, AppSpace.xxl),
@@ -56,13 +56,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const AppIconTile(icon: Icons.key_rounded, size: 56),
-                  const SizedBox(height: 22),
-                  Semantics(header: true, child: Text('Recuperar senha', style: AppText.heading())),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Informe o e-mail da sua conta. Enviaremos um código de 6 dígitos para você criar uma nova senha.',
-                    style: AppText.bodySm(color: context.textSecondary).copyWith(height: 1.45),
+                  const AppHeroHeader(
+                    eyebrow: AppEyebrow(tagIcon: Icons.mail_outline_rounded, tag: 'Código', text: 'Enviado para o seu e-mail'),
+                    title: [('Esqueceu a senha? ', HeroTone.plain), ('Enviamos um código.', HeroTone.accent)],
+                    lead: 'Informe o e-mail da sua conta. Enviaremos um código de 6 dígitos para você criar uma nova senha.',
                   ),
                   const SizedBox(height: 24),
                   AppTextField(

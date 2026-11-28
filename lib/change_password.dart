@@ -90,22 +90,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    AppCard(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const AppIconTile(icon: Icons.verified_user_outlined, size: 40),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Text(
-                              'Sua nova senha deve ser diferente da atual. Você continua conectado neste aparelho depois da troca.',
-                              style: AppText.label(color: context.textSecondary, weight: FontWeight.w400).copyWith(fontSize: 14, height: 1.45),
-                            ),
-                          ),
-                        ],
-                      ),
+                    const AppHeroHeader(
+                      eyebrow: AppEyebrow(tagIcon: Icons.lock_outline_rounded, tag: 'Segurança', text: 'Da sua conta'),
+                      title: [('Troque sua ', HeroTone.plain), ('senha.', HeroTone.accent)],
+                      lead: 'A nova senha deve ser diferente da atual. Você continua conectado neste aparelho; '
+                          'os outros aparelhos saem da conta.',
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                     AppTextField(
                       label: 'Senha atual',
                       hint: 'Digite a senha atual',

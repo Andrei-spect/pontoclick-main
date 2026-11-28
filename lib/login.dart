@@ -78,14 +78,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
                         Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const AppLogo(),
-                            const SizedBox(height: 6),
-                            Text('Seu controle de ponto simples e seguro',
-                                style: AppText.bodySm(color: context.textSecondary), textAlign: TextAlign.center),
-                            const SizedBox(height: 32),
+                            const AppBrand(size: 32),
+                            const SizedBox(height: 28),
+                            const AppHeroHeader(
+                              eyebrow: AppEyebrow(tag: 'Grátis', text: 'Funciona até sem internet'),
+                              title: [('Seu ponto, ', HeroTone.plain), ('de onde você estiver.', HeroTone.accent)],
+                              lead: 'Registre entrada, intervalo e saída pelo celular e acompanhe suas horas extras.',
+                              fontSize: 36,
+                            ),
+                            const SizedBox(height: 28),
                             AppTextField(
                               label: 'E-mail',
                               hint: 'exemplo@gmail.com',
@@ -120,11 +125,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                     context,
                                     MaterialPageRoute(
                                         builder: (_) => ForgotPasswordScreen(initialEmail: _emailController.text.trim()))),
-                                child: Text('Esqueci minha senha', style: AppText.label(color: context.accentPeach)),
+                                child: Text('Esqueci minha senha', style: AppText.label(color: context.violetText, weight: FontWeight.w600)),
                               ),
                             ),
                             const SizedBox(height: 6),
-                            AppPrimaryButton(label: 'Entrar', onPressed: _handleLogin, isLoading: _isLoading),
+                            AppPrimaryButton(label: 'Entrar', icon: Icons.arrow_forward_rounded, onPressed: _handleLogin, isLoading: _isLoading),
+                            const SizedBox(height: 28),
+                            const _AudienceRow(),
                           ],
                         ),
                         Padding(
@@ -137,7 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               TextButton(
                                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
                                 child: Text('Criar conta',
-                                    style: AppText.label(color: context.accentPeach, weight: FontWeight.w600).copyWith(fontSize: 14)),
+                                    style: AppText.label(color: context.violetText, weight: FontWeight.w600).copyWith(fontSize: 14)),
                               ),
                             ],
                           ),
@@ -151,6 +158,56 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Grupo de avatares do hero-01: para quem o app foi feito.
+class _AudienceRow extends StatelessWidget {
+  const _AudienceRow();
+
+  static const _icons = [Icons.local_shipping_outlined, Icons.two_wheeler_rounded, Icons.build_outlined, Icons.dark_mode_outlined];
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = [AppColors.twilightViolet, context.accentPeach, AppColors.statusGreenStrong, AppColors.statusBlueStrong];
+    final bg = Theme.of(context).scaffoldBackgroundColor;
+    return Row(
+      children: [
+        SizedBox(
+          width: 38.0 + 24 * (_icons.length - 1),
+          height: 38,
+          child: Stack(
+            children: [
+              for (var i = 0; i < _icons.length; i++)
+                Positioned(
+                  left: 24.0 * i,
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      // Cor sólida (mistura com o fundo) para a sobreposição não ficar transparente.
+                      color: Color.alphaBlend(colors[i].withValues(alpha: context.isDarkMode ? 0.30 : 0.16), bg),
+                      border: Border.all(color: bg, width: 2.5),
+                    ),
+                    child: Icon(_icons[i], size: 17, color: colors[i]),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text.rich(
+            TextSpan(children: [
+              TextSpan(text: 'Feito para quem trabalha na rua. ', style: TextStyle(color: context.textPrimary, fontWeight: FontWeight.w600)),
+              const TextSpan(text: 'Motoristas, entregadores, técnicos e turno da noite.'),
+            ]),
+            style: AppText.label(color: context.textTertiary, weight: FontWeight.w400),
+          ),
+        ),
+      ],
     );
   }
 }

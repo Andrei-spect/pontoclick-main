@@ -61,7 +61,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: appSecondaryBar(null),
+      appBar: appSecondaryBar('Criar conta', parent: 'Entrar'),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(AppSpace.xxl, 4, AppSpace.xxl, AppSpace.xxl),
@@ -72,10 +72,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Semantics(header: true, child: Text('Criar conta', style: AppText.heading())),
-                    const SizedBox(height: 6),
-                    Text('Preencha seus dados para começar a registrar o ponto.',
-                        style: AppText.bodySm(color: context.textSecondary).copyWith(height: 1.45)),
+                    const AppHeroHeader(
+                      eyebrow: AppEyebrow(tag: 'Grátis', text: 'Sem cartão, sem mensalidade'),
+                      title: [('Crie sua conta e ', HeroTone.plain), ('comece a registrar o ponto.', HeroTone.accent)],
+                      lead: 'Preencha seus dados. Leva menos de um minuto.',
+                    ),
                     const SizedBox(height: 24),
                     AppTextField(
                       label: 'Nome completo',

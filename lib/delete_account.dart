@@ -75,12 +75,11 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const AppIconTile(icon: Icons.delete_forever_outlined, color: AppColors.statusRed, size: 56),
-                  const SizedBox(height: 18),
-                  Semantics(header: true, child: Text('Excluir sua conta', style: AppText.heading())),
-                  const SizedBox(height: 6),
-                  Text('A exclusão é definitiva e não pode ser desfeita. Serão apagados:',
-                      style: AppText.bodySm(color: context.textSecondary).copyWith(height: 1.45)),
+                  const AppHeroHeader(
+                    eyebrow: AppEyebrow(tag: 'Definitivo', danger: true, text: 'Não pode ser desfeito'),
+                    title: [('Excluir sua ', HeroTone.plain), ('conta.', HeroTone.danger)],
+                    lead: 'A exclusão é definitiva e não pode ser desfeita. Serão apagados:',
+                  ),
                   const SizedBox(height: 4),
                   _item(context, 'seu perfil e sua foto;'),
                   _item(context, 'todos os seus registros de ponto, inclusive os ainda não sincronizados;'),

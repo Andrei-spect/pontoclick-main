@@ -124,14 +124,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (!NotificationService.isSupported) ...[
-                          AppNotice(
-                            icon: Icons.phone_iphone_rounded,
-                            text: 'Os lembretes aparecem no app de celular (Android e iPhone). Aqui você pode ajustar os horários.',
-                            color: context.violetText,
+                        AppHeroHeader(
+                          eyebrow: AppEyebrow(
+                            tagIcon: Icons.notifications_none_rounded,
+                            tag: 'Lembretes',
+                            text: NotificationService.isSupported ? 'Neste celular' : 'Aparecem no app de celular',
                           ),
-                          const SizedBox(height: 16),
-                        ],
+                          title: const [('Lembramos você de ', HeroTone.plain), ('bater o ponto.', HeroTone.accent)],
+                          lead: NotificationService.isSupported
+                              ? 'Escolha os horários e os dias. Se você já tiver batido o ponto, o lembrete daquele horário não aparece.'
+                              : 'Os lembretes aparecem no app de celular (Android e iPhone). Aqui você pode ajustar os horários.',
+                        ),
+                        const SizedBox(height: 24),
                         _buildMasterSwitch(context),
                         const SizedBox(height: 22),
                         AnimatedOpacity(
@@ -194,7 +198,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget _buildMasterSwitch(BuildContext context) {
     return Material(
       color: Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(AppRadius.cards),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.cards),
+        side: BorderSide(color: context.border),
+      ),
       clipBehavior: Clip.antiAlias,
       child: MergeSemantics(
         child: InkWell(
@@ -229,7 +236,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget _buildTimesCard(BuildContext context) {
     return Material(
       color: Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(AppRadius.cards),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.cards),
+        side: BorderSide(color: context.border),
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [

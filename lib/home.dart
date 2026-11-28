@@ -3,19 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'app_theme.dart';
-import 'theme_controller.dart';
 import 'location_service.dart';
 import 'auth_service.dart';
-import 'app_avatar.dart';
-import 'user_profile.dart';
 import 'user_service.dart';
 import 'time_record.dart';
 import 'records_service.dart';
-import 'main_shell.dart';
 import 'widgets.dart';
 import 'work_locations.dart';
 import 'notification_service.dart';
 import 'work_schedule.dart';
+import 'day_line.dart';
 
 const _defaultBreakMinutes = 60; // quando o horário do dia não tem intervalo (ou é folga)
 
@@ -157,7 +154,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final today = DateTime(_now.year, _now.month, _now.day);
     final yesterday = DateTime(_now.year, _now.month, _now.day - 1);
     final monthStart = DateTime(_now.year, _now.month, 1);
-    final from = yesterday.isBefore(monthStart) ? yesterday : monthStart;
+    final weekStart = DateTime(_now.year, _now.month, _now.day - (_now.weekday - 1)); // segunda (resumo da semana)
+    final from = [yesterday, monthStart, weekStart].reduce((a, b) => a.isBefore(b) ? a : b);
 
     try {
       final records = await _recordsService.fetchRange(from, today);
@@ -355,8 +353,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // Interface
+  // Interface (padrão hero-01: selo + título grande + linha do dia)
   // ---------------------------------------------------------------------------
+
+  static const _meses = [
+    'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
+  ];
+  static const _dias = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
+
+  TimeRecord? _punch(PunchType type) => _dayRecords.where((r) => r.type == type).firstOrNull;
 
   @override
   Widget build(BuildContext context) {
@@ -365,49 +371,50 @@ class _HomeScreenState extends State<HomeScreen> {
         _locationResult?.status == LocationStatus.permissionDeniedForever;
 
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            if (gpsOff) _buildGpsAlert(context),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                    AppSpace.page, 12, AppSpace.page, MediaQuery.paddingOf(context).bottom + AppSpace.xxl),
-                child: AppContentWidth(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildStatusRow(context),
-                      const SizedBox(height: 14),
-                      _buildClock(context),
-                      const SizedBox(height: 14),
-                      _buildLocationCard(context),
+      body: Column(
+        children: [
+          if (gpsOff) _buildGpsAlert(context),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(AppSpace.page, 18, AppSpace.page, MediaQuery.paddingOf(context).bottom + AppSpace.xxl),
+              child: AppContentWidth(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildEyebrowRow(context),
+                    const SizedBox(height: 16),
+                    _buildHero(context),
+                    const SizedBox(height: 18),
+                    _buildMainCta(context),
+                    if (_yesterdayMissingExit) ...[
                       const SizedBox(height: 12),
-                      _buildMainCta(context),
-                      const SizedBox(height: 12),
-                      _buildWorkedCard(context),
-                      const SizedBox(height: 12),
-                      _buildOvertimeCard(context),
-                      if (_yesterdayMissingExit) ...[
-                        const SizedBox(height: 12),
-                        const AppNotice(
-                          icon: Icons.warning_amber_rounded,
-                          text: 'Ontem ficou sem registro de saída.',
-                          color: AppColors.statusOrange,
-                        ),
-                      ],
-                      const SizedBox(height: 12),
-                      _buildTimeline(context),
-                      const SizedBox(height: 12),
-                      _buildHoursBankCard(context),
+                      const AppNotice(
+                        icon: Icons.warning_amber_rounded,
+                        text: 'Ontem ficou sem registro de saída.',
+                        color: AppColors.statusOrange,
+                      ),
                     ],
-                  ),
+                    const SizedBox(height: 18),
+                    _buildWeek(context),
+                    const SizedBox(height: 18),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: _buildWorkedCard(context)),
+                        const SizedBox(width: 10),
+                        Expanded(child: _buildOvertimeCard(context)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDayLineCard(context),
+                    const SizedBox(height: 12),
+                    _buildHoursBankCard(context),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -415,16 +422,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildGpsAlert(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: AppColors.statusRed.withValues(alpha: 0.15),
+      color: AppColors.statusRed.withValues(alpha: 0.12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
-          const Icon(Icons.location_off_rounded, color: AppColors.statusRed, size: 18),
+          Icon(Icons.location_off_rounded, color: context.dangerText, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'GPS desativado — ative a localização para registrar o ponto',
-              style: AppText.caption(color: AppColors.statusRed, weight: FontWeight.w600),
+              'GPS desativado: ative a localização para registrar o ponto',
+              style: AppText.caption(color: context.dangerText, weight: FontWeight.w600),
             ),
           ),
         ],
@@ -432,231 +439,277 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatusRow(BuildContext context) {
+  /// Selo do local (abre "Locais de trabalho") + situação da conexão.
+  Widget _buildEyebrowRow(BuildContext context) {
+    final result = _locationResult;
+    String text;
+    Color dot;
+    if (_loadingLocation) {
+      text = 'Buscando localização...';
+      dot = context.textTertiary;
+    } else if (result?.status == LocationStatus.serviceDisabled) {
+      text = 'GPS desativado';
+      dot = AppColors.statusRed;
+    } else if (result?.status == LocationStatus.permissionDenied ||
+        result?.status == LocationStatus.permissionDeniedForever) {
+      text = 'Permissão de localização negada';
+      dot = AppColors.statusRed;
+    } else if (result?.matchedLocation != null) {
+      text = '${result!.matchedLocation!.name} · local identificado';
+      dot = AppColors.statusGreen;
+    } else if (result?.isOk == true) {
+      text = WorkLocations.items.value.isEmpty ? 'Cadastre seus locais de trabalho' : 'Fora dos locais cadastrados';
+      dot = AppColors.statusOrange;
+    } else {
+      text = 'Localização indisponível';
+      dot = context.textTertiary;
+    }
+
     return Row(
       children: [
-        AppStatusChip(
-          label: _isOnline ? 'Online' : 'Offline',
-          dotColor: _isOnline ? AppColors.statusGreen : AppColors.statusRed,
+        Expanded(
+          child: AppEyebrow(
+            text: text,
+            dotColor: dot,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkLocationsScreen())),
+          ),
+        ),
+        IconButton(
+          tooltip: 'Atualizar localização',
+          visualDensity: VisualDensity.compact,
+          icon: _loadingLocation
+              ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: context.textTertiary))
+              : Icon(Icons.refresh_rounded, size: 18, color: context.textTertiary),
+          onPressed: _loadingLocation
+              ? null
+              : () {
+                  setState(() => _loadingLocation = true);
+                  _loadLocation();
+                },
         ),
         if (_pendingSyncCount > 0) ...[
-          const SizedBox(width: 8),
           AppStatusChip(
-            label: _isSyncing
-                ? 'Sincronizando...'
-                : '$_pendingSyncCount ${_pendingSyncCount == 1 ? "pendente" : "pendentes"}',
+            label: _isSyncing ? 'Sincronizando...' : '$_pendingSyncCount ${_pendingSyncCount == 1 ? "pendente" : "pendentes"}',
             icon: Icons.cloud_upload_outlined,
             tooltip: _isOnline
                 ? 'Pontos salvos no aparelho. Toque para sincronizar.'
                 : 'Pontos salvos no aparelho. Serão enviados quando a internet voltar.',
             onTap: _isOnline && !_isSyncing ? _syncPending : null,
           ),
+          const SizedBox(width: 6),
         ],
-        const Spacer(),
-        IconButton(
-          tooltip: 'Alternar tema',
-          icon: Icon(context.isDarkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-              color: context.textSecondary, size: 20),
-          onPressed: ThemeController.toggle,
-        ),
-        ValueListenableBuilder<UserProfile?>(
-          valueListenable: UserSession.current,
-          builder: (context, user, _) => Semantics(
-            button: true,
-            label: 'Abrir perfil',
-            excludeSemantics: true,
-            child: InkWell(
-              onTap: () => MainShell.goTo(2),
-              customBorder: const CircleBorder(),
-              child: Padding(
-                padding: const EdgeInsets.all(3),
-                child: AppAvatar(initials: user?.initials ?? '', imageUrl: user?.photoFullUrl, size: 38),
-              ),
-            ),
-          ),
-        ),
+        AppStatusChip(label: _isOnline ? 'Online' : 'Offline', dotColor: _isOnline ? AppColors.statusGreen : AppColors.statusRed),
       ],
     );
   }
 
-  Widget _buildClock(BuildContext context) {
-    const meses = [
-      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
-    ];
-    const dias = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
-    final dataFormatada = '${dias[_now.weekday - 1]}, ${_now.day} de ${meses[_now.month - 1]} de ${_now.year}';
-    final horaFormatada = '${two(_now.hour)}:${two(_now.minute)}:${two(_now.second)}';
+  /// Data e hora ao vivo + título que muda conforme o momento da jornada.
+  Widget _buildHero(BuildContext context) {
+    final dateLine = '${_dias[_now.weekday - 1]}, ${_now.day} de ${_meses[_now.month - 1]} · '
+        '${two(_now.hour)}:${two(_now.minute)}:${two(_now.second)}';
+    final (title, lead) = _heroTexts();
 
-    return Semantics(
-      label: 'Agora são ${two(_now.hour)}:${two(_now.minute)}, $dataFormatada',
-      excludeSemantics: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(dataFormatada, style: AppText.label(color: context.textSecondary, weight: FontWeight.w400).copyWith(fontSize: 14)),
-          const SizedBox(height: 2),
-          Text(horaFormatada,
-              style: AppText.numeric(AppText.headingLg().copyWith(fontSize: 44, height: 1.1, letterSpacing: -1.3))),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          label: 'Agora são ${two(_now.hour)}:${two(_now.minute)}, ${_dias[_now.weekday - 1]}, ${_now.day} de ${_meses[_now.month - 1]}',
+          excludeSemantics: true,
+          child: Text(dateLine, style: AppText.numeric(AppText.label(color: context.textTertiary, weight: FontWeight.w500))),
+        ),
+        const SizedBox(height: 8),
+        if (_loadingRecords)
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [AppSkeleton(width: 260, height: 30), SizedBox(height: 8), AppSkeleton(width: 180, height: 30)],
+          )
+        else ...[
+          AppHeroTitle(title, fontSize: 34),
+          const SizedBox(height: 10),
+          AppLead(lead),
         ],
-      ),
+      ],
     );
   }
 
-  Widget _buildLocationCard(BuildContext context) {
-    String title;
-    String subtitle;
-    Color titleColor = context.accentPeach;
-    final result = _locationResult;
+  (List<(String, HeroTone)>, String) _heroTexts() {
+    final entrada = _punch(PunchType.entrada);
+    final intervalo = _punch(PunchType.intervaloInicio);
+    final volta = _punch(PunchType.intervaloFim);
+    final saida = _punch(PunchType.saida);
+    final worked = _workedToday;
+    final goal = _dailyGoal;
+    final goalText = formatGoal(goal);
+    final overtime = overtimeOf(worked, goal: goal);
+    final overnight = _isOvernightShift ? 'Turno iniciado ontem. ' : '';
 
-    if (_loadingLocation) {
-      title = 'Buscando localização...';
-      subtitle = 'Isso leva alguns segundos';
-      titleColor = context.textSecondary;
-    } else if (result?.status == LocationStatus.serviceDisabled) {
-      title = 'GPS desativado';
-      subtitle = 'Ative a localização do aparelho';
-      titleColor = AppColors.statusRed;
-    } else if (result?.status == LocationStatus.permissionDenied ||
-        result?.status == LocationStatus.permissionDeniedForever) {
-      title = 'Permissão de localização negada';
-      subtitle = 'Libere o acesso nas configurações do app';
-      titleColor = AppColors.statusRed;
-    } else if (result?.matchedLocation != null) {
-      title = result!.matchedLocation!.name;
-      subtitle = 'Local identificado';
-    } else if (result?.isOk == true) {
-      title = 'Local não identificado';
-      subtitle = WorkLocations.items.value.isEmpty ? 'Toque para cadastrar seus locais' : 'Fora dos locais cadastrados';
-      titleColor = context.textPrimary;
+    if (entrada == null) {
+      if (_isDayOff) {
+        return ([('Hoje é ', HeroTone.plain), ('folga', HeroTone.accent), (' no seu horário.', HeroTone.plain)],
+            'Se trabalhar, todo o tempo conta como hora extra.');
+      }
+      final shift = ScheduleStore.schedule.value.shiftFor(DateTime.parse(_shiftKey));
+      return (
+        [('Hora de bater a ', HeroTone.plain), ('entrada', HeroTone.accent), ('.', HeroTone.plain)],
+        shift == null ? 'Sua meta hoje é de $goalText.' : 'Sua jornada hoje: ${shift.entrada} às ${shift.saida} · meta de $goalText.',
+      );
+    }
+
+    if (saida != null) {
+      final String lead;
+      if (_isDayOff) {
+        lead = 'Você trabalhou ${formatHours(worked)} numa folga: tudo conta como hora extra.';
+      } else if (overtime > Duration.zero) {
+        lead = 'Você trabalhou ${formatHours(worked)}, ${formatGoal(overtime)} além da meta de $goalText.';
+      } else if (worked < goal) {
+        lead = 'Você trabalhou ${formatHours(worked)}. Faltaram ${formatGoal(goal - worked)} para a meta de $goalText.';
+      } else {
+        lead = 'Você trabalhou ${formatHours(worked)}, exatamente a meta de $goalText.';
+      }
+      return ([('Jornada concluída às ', HeroTone.plain), (formatClock(saida.recordedAt), HeroTone.number), ('.', HeroTone.plain)], '$overnight$lead');
+    }
+
+    if (_isOnBreak) {
+      final left = _breakRemainingMinutes;
+      return (
+        [('Em intervalo desde ', HeroTone.plain), (formatClock(intervalo!.recordedAt), HeroTone.number), ('.', HeroTone.plain)],
+        '$overnight${left >= 0 ? 'Retorno do intervalo em $left min.' : 'Intervalo excedido em ${-left} min.'} '
+            'Você já trabalhou ${formatHours(worked)}.',
+      );
+    }
+
+    final since = volta ?? entrada;
+    final String lead;
+    if (_isDayOff) {
+      lead = 'Dia de folga: as ${formatHours(worked)} trabalhadas contam como hora extra.';
+    } else if (overtime > Duration.zero) {
+      lead = 'Você já trabalhou ${formatHours(worked)}, ${formatGoal(overtime)} além da meta de $goalText.';
     } else {
-      title = 'Não foi possível obter a localização';
-      subtitle = 'Toque em atualizar para tentar de novo';
-      titleColor = context.textSecondary;
+      lead = 'Você já trabalhou ${formatHours(worked)}. Faltam ${formatGoal(goal - worked)} para a meta de $goalText.';
     }
-    if (result?.accuracyMeters != null && !_loadingLocation) {
-      subtitle = '$subtitle · precisão de ${result!.accuracyMeters!.toStringAsFixed(0)} m';
-    }
-
-    // O cartão abre "Locais de trabalho": ali dá para cadastrar o local onde a pessoa está.
-    return Material(
-      color: Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(AppRadius.cards),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkLocationsScreen())),
-        child: Padding(
-      padding: const EdgeInsets.fromLTRB(14, 10, 4, 10),
-      child: Row(
-        children: [
-          AppIconTile(icon: Icons.location_on_outlined, color: context.accentPeach, size: 36),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppText.label(color: titleColor, weight: FontWeight.w600).copyWith(fontSize: 14)),
-                const SizedBox(height: 2),
-                Text(subtitle, style: AppText.caption(color: context.textTertiary)),
-              ],
-            ),
-          ),
-          IconButton(
-            tooltip: 'Atualizar localização',
-            icon: _loadingLocation
-                ? SizedBox(
-                    width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: context.textTertiary))
-                : Icon(Icons.refresh_rounded, size: 20, color: context.textTertiary),
-            onPressed: _loadingLocation
-                ? null
-                : () {
-                    setState(() => _loadingLocation = true);
-                    _loadLocation();
-                  },
-          ),
-        ],
-      ),
-        ),
-      ),
+    return (
+      [(volta == null ? 'Trabalhando desde ' : 'De volta desde ', HeroTone.plain), (formatClock(since.recordedAt), HeroTone.number), ('.', HeroTone.plain)],
+      '$overnight$lead',
     );
   }
 
   Widget _buildMainCta(BuildContext context) {
     final type = _nextPunchType;
-    final isDone = type == PunchType.completo;
-    final info = isDone ? null : punchTypeInfo[type]!;
+    if (type == PunchType.completo) {
+      // Dia fechado: é um aviso, não um botão desativado (que ficaria apagado no tema claro).
+      final green = context.isDarkMode ? AppColors.statusGreen : AppColors.statusGreenStrong;
+      return Semantics(
+        label: 'Dia completo: os 4 pontos foram registrados',
+        excludeSemantics: true,
+        child: Container(
+          height: 54,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.statusGreen.withValues(alpha: context.isDarkMode ? 0.14 : 0.12),
+            borderRadius: BorderRadius.circular(AppRadius.buttons),
+            border: Border.all(color: AppColors.statusGreen.withValues(alpha: 0.45)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.task_alt_rounded, size: 20, color: green),
+              const SizedBox(width: 10),
+              Text('Dia completo · 4 de 4 pontos', style: AppText.bodySm(color: green, weight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      );
+    }
 
+    final info = punchTypeInfo[type]!;
     return AppPrimaryButton(
-      height: 56,
-      label: isDone ? 'Jornada concluída' : info!.actionLabel,
-      icon: isDone ? Icons.task_alt_rounded : Icons.check_rounded,
-      color: isDone ? AppColors.statusGreenStrong : info!.buttonColor,
+      height: 54,
+      label: info.actionLabel,
+      icon: Icons.check_rounded,
+      color: info.buttonColor,
       isLoading: _isPunching,
-      onPressed: isDone || _loadingRecords ? null : _registrarPonto,
+      onPressed: _loadingRecords ? null : _registrarPonto,
     );
   }
 
-  /// Cartão "Horas extras hoje": mesmo formato do "Trabalhado hoje", mostrando
-  /// o tempo trabalhado além da meta diária (sem limite máximo).
-  Widget _buildOvertimeCard(BuildContext context) {
-    final worked = _workedToday;
-    final overtime = overtimeOf(worked, goal: _dailyGoal);
-    final hasEntry = _dayRecords.any((r) => r.type == PunchType.entrada);
-    final finished = _dayRecords.any((r) => r.type == PunchType.saida);
+  /// Grupo de avatares do hero-01, aqui com os dias da semana: cheio = dia completo.
+  Widget _buildWeek(BuildContext context) {
+    final monday = DateTime(_now.year, _now.month, _now.day - (_now.weekday - 1));
+    final schedule = ScheduleStore.schedule.value;
+    const letters = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
+    var complete = 0;
+    var weekExtra = Duration.zero;
+    final circles = <Widget>[];
 
-    final goalText = formatGoal(_dailyGoal);
-    final String note;
-    if (_isDayOff) {
-      note = hasEntry
-          ? 'Dia de folga no seu horário: todo o tempo trabalhado conta como extra.'
-          : 'Dia de folga no seu horário. Se trabalhar, todo o tempo conta como extra.';
-    } else if (!hasEntry) {
-      note = 'As horas extras começam a contar depois de $goalText trabalhadas.';
-    } else if (overtime == Duration.zero) {
-      note = finished ? 'Nenhuma hora extra hoje.' : 'Começa a contar em ${formatHours(_dailyGoal - worked)}.';
-    } else {
-      note = finished ? 'Além da meta de $goalText do dia.' : 'Contando agora.';
+    for (var i = 0; i < 7; i++) {
+      final date = DateTime(monday.year, monday.month, monday.day + i);
+      final key = workDateOf(date);
+      final day = _allRecords.where((r) => r.workDate == key).toList();
+      final works = schedule.shiftFor(date) != null;
+      if (!works && day.isEmpty) continue; // folga sem ponto: não aparece
+      final hasExit = day.any((r) => r.type == PunchType.saida);
+      final isCurrent = key == _shiftKey;
+      if (hasExit) {
+        complete++;
+        weekExtra += overtimeOf(workedDuration(day), goal: schedule.goalForWorkDate(key));
+      }
+      final future = date.isAfter(_now) && !isCurrent;
+
+      final Color fill;
+      final Color ring;
+      final Color fg;
+      if (hasExit) {
+        fill = AppColors.twilightViolet;
+        ring = Theme.of(context).scaffoldBackgroundColor;
+        fg = Colors.white;
+      } else if (day.isNotEmpty) {
+        fill = Theme.of(context).cardColor;
+        ring = isCurrent ? AppColors.twilightViolet : AppColors.statusOrange;
+        fg = isCurrent ? context.violetText : AppColors.statusOrange;
+      } else {
+        fill = context.cardRaised;
+        ring = context.border;
+        fg = future ? context.textTertiary.withValues(alpha: 0.6) : context.textTertiary;
+      }
+
+      circles.add(Positioned(
+        left: 24.0 * circles.length,
+        child: Container(
+          width: 34,
+          height: 34,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: fill, border: Border.all(color: ring, width: 2)),
+          child: Text(letters[i], style: AppText.caption(color: fg, weight: FontWeight.w700)),
+        ),
+      ));
     }
 
-    return AppCard(
-      child: Semantics(
-        label: 'Horas extras ${_isOvernightShift ? 'no turno' : 'hoje'}: ${formatHours(overtime)}. $note',
-        excludeSemantics: true,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(_isOvernightShift ? 'Horas extras no turno' : 'Horas extras hoje',
-                          style: AppText.label(color: context.textSecondary, weight: FontWeight.w400)),
-                      const SizedBox(height: 2),
-                      _loadingRecords
-                          ? const Padding(padding: EdgeInsets.only(top: 6, bottom: 4), child: AppSkeleton(width: 96, height: 22))
-                          : Text(
-                              formatOvertime(overtime),
-                              style: AppText.numeric(AppText.headingSm(
-                                color: overtime > Duration.zero ? context.violetText : context.textPrimary,
-                              ).copyWith(fontSize: 24)),
-                            ),
-                    ],
-                  ),
+    final extraText = weekExtra > Duration.zero ? ' · ${formatOvertime(weekExtra)} de extras' : '';
+    return Semantics(
+      label: '$complete ${complete == 1 ? 'dia completo' : 'dias completos'} nesta semana$extraText',
+      excludeSemantics: true,
+      child: Row(
+        children: [
+          // Círculos sobrepostos, como o grupo de avatares do hero-01.
+          SizedBox(
+            width: circles.isEmpty ? 0 : 34.0 + 24 * (circles.length - 1),
+            height: 34,
+            child: Stack(children: circles),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text.rich(
+              TextSpan(children: [
+                TextSpan(
+                  text: '$complete ${complete == 1 ? 'dia completo' : 'dias completos'}',
+                  style: TextStyle(color: context.textPrimary, fontWeight: FontWeight.w600),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(_isDayOff ? 'folga' : 'após $goalText',
-                      style: AppText.numeric(AppText.label(color: context.textTertiary, weight: FontWeight.w400))),
-                ),
-              ],
+                TextSpan(text: ' nesta semana$extraText'),
+              ]),
+              style: AppText.numeric(AppText.label(color: context.textTertiary, weight: FontWeight.w400)),
             ),
-            const SizedBox(height: 10),
-            Text(note, style: AppText.label(color: context.textSecondary, weight: FontWeight.w400)),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -668,32 +721,20 @@ class _HomeScreenState extends State<HomeScreen> {
         : (worked.inSeconds / _dailyGoal.inSeconds).clamp(0, 1).toDouble();
 
     return AppCard(
+      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(_isOvernightShift ? 'Trabalhado no turno' : 'Trabalhado hoje',
-                        style: AppText.label(color: context.textSecondary, weight: FontWeight.w400)),
-                    const SizedBox(height: 2),
-                    _loadingRecords
-                        ? const Padding(padding: EdgeInsets.only(top: 6, bottom: 4), child: AppSkeleton(width: 96, height: 22))
-                        : Text(formatHours(worked), style: AppText.numeric(AppText.headingSm().copyWith(fontSize: 24))),
-                  ],
+          Text(_isOvernightShift ? 'Trabalhado no turno' : 'Trabalhado hoje',
+              maxLines: 1, overflow: TextOverflow.ellipsis, style: AppText.caption(color: context.textTertiary)),
+          const SizedBox(height: 4),
+          _loadingRecords
+              ? const Padding(padding: EdgeInsets.symmetric(vertical: 4), child: AppSkeleton(width: 80, height: 22))
+              : FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(formatHours(worked), style: AppText.numeric(AppText.headingSm(weight: FontWeight.w700).copyWith(fontSize: 24))),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(_isDayOff ? 'dia de folga' : 'meta de ${formatGoal(_dailyGoal)} · ${(percent * 100).round()}%',
-                    style: AppText.numeric(AppText.label(color: context.textTertiary, weight: FontWeight.w400))),
-              ),
-            ],
-          ),
           const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(AppRadius.pills),
@@ -703,136 +744,105 @@ class _HomeScreenState extends State<HomeScreen> {
               builder: (context, value, _) => LinearProgressIndicator(
                 value: value,
                 minHeight: 6,
-                backgroundColor: Theme.of(context).dividerColor,
+                backgroundColor: context.cardRaised,
                 valueColor: AlwaysStoppedAnimation(context.accentPeach),
                 semanticsLabel: 'Progresso da meta diária',
               ),
             ),
           ),
-          if (_isOnBreak) ...[
-            const SizedBox(height: 10),
-            Text(
-              _breakRemainingMinutes >= 0
-                  ? 'Retorno do intervalo em ${_breakRemainingMinutes}min'
-                  : 'Intervalo excedido em ${-_breakRemainingMinutes}min',
-              style: AppText.label(
-                  color: _breakRemainingMinutes >= 0 ? context.textSecondary : AppColors.statusRed, weight: FontWeight.w400),
-            ),
-          ],
+          const SizedBox(height: 6),
+          Text(_isDayOff ? 'dia de folga' : 'meta de ${formatGoal(_dailyGoal)} · ${(percent * 100).round()}%',
+              maxLines: 1, overflow: TextOverflow.ellipsis, style: AppText.numeric(AppText.caption(color: context.textTertiary))),
         ],
       ),
     );
   }
 
-  Widget _buildTimeline(BuildContext context) {
-    final saidaPendingLate = _nextPunchType == PunchType.saida && DateTime.now().hour >= 20;
-    const types = [PunchType.entrada, PunchType.intervaloInicio, PunchType.intervaloFim, PunchType.saida];
+  Widget _buildOvertimeCard(BuildContext context) {
+    final overtime = overtimeOf(_workedToday, goal: _dailyGoal);
+    return AppCard(
+      padding: const EdgeInsets.all(14),
+      child: Semantics(
+        label: 'Horas extras ${_isOvernightShift ? 'no turno' : 'hoje'}: ${formatHours(overtime)}',
+        excludeSemantics: true,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(_isOvernightShift ? 'Extras no turno' : 'Horas extras hoje',
+                maxLines: 1, overflow: TextOverflow.ellipsis, style: AppText.caption(color: context.textTertiary)),
+            const SizedBox(height: 4),
+            _loadingRecords
+                ? const Padding(padding: EdgeInsets.symmetric(vertical: 4), child: AppSkeleton(width: 80, height: 22))
+                : FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      formatOvertime(overtime),
+                      style: AppText.numeric(AppText.headingSm(
+                        color: overtime > Duration.zero ? context.violetText : context.textPrimary,
+                        weight: FontWeight.w700,
+                      ).copyWith(fontSize: 24)),
+                    ),
+                  ),
+            const SizedBox(height: 22),
+            Text(_isDayOff ? 'folga: tudo é extra' : 'contam após ${formatGoal(_dailyGoal)}',
+                maxLines: 1, overflow: TextOverflow.ellipsis, style: AppText.numeric(AppText.caption(color: context.textTertiary))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Marcações do dia: barra da jornada + linha do tempo com a duração de cada trecho.
+  Widget _buildDayLineCard(BuildContext context) {
+    final day = _dayRecords;
+    final overtime = overtimeOf(_workedToday, goal: _dailyGoal);
+    final done = day.any((r) => r.type == PunchType.saida);
 
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Semantics(
-            header: true,
-            child: Text(_isOvernightShift ? 'Turno iniciado ontem' : 'Resumo do dia',
-                style: AppText.bodySm(weight: FontWeight.w600)),
-          ),
-          if (_isOvernightShift) ...[
-            const SizedBox(height: 2),
-            Text('Os pontos depois da meia-noite continuam neste turno.',
-                style: AppText.caption(color: context.textTertiary)),
-          ],
-          const SizedBox(height: 6),
-          for (var i = 0; i < types.length; i++)
-            _buildTimelineRow(context, types[i], isLast: i == types.length - 1, showLateWarning: saidaPendingLate && types[i] == PunchType.saida),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimelineRow(BuildContext context, PunchType type, {required bool isLast, required bool showLateWarning}) {
-    final record = _dayRecords.where((r) => r.type == type).firstOrNull;
-    final info = punchTypeInfo[type]!;
-    final done = record != null;
-    final isNext = !done && _nextPunchType == type;
-
-    String detail;
-    if (done) {
-      detail = record.pending ? 'Salvo no aparelho' : (record.locationName ?? 'Local não identificado');
-    } else {
-      detail = isNext ? 'Próximo registro' : 'Aguardando';
-    }
-
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            width: 12,
-            child: Column(
-              children: [
-                const SizedBox(height: 14),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: done ? info.color : Colors.transparent,
-                    border: Border.all(
-                        color: done || isNext ? info.color : Theme.of(context).dividerColor, width: 1.5),
-                  ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Semantics(
+                      header: true,
+                      child: Text(_isOvernightShift ? 'Turno iniciado ontem' : 'Marcações de hoje',
+                          style: AppText.bodySm(weight: FontWeight.w700)),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${done ? 'Total' : 'Até agora'} ${formatHours(_workedToday)} · ${day.length} de 4 marcações',
+                      style: AppText.numeric(AppText.caption(color: context.textTertiary)),
+                    ),
+                  ],
                 ),
-                if (!isLast)
-                  Expanded(
-                    child: Container(width: 1.5, margin: const EdgeInsets.only(top: 4), color: Theme.of(context).dividerColor),
-                  ),
+              ),
+              if (overtime > Duration.zero) AppBadge('extra ${formatOvertime(overtime)}'),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (_loadingRecords)
+            const Column(children: [AppSkeleton(height: 16), SizedBox(height: 14), AppSkeleton(height: 14), SizedBox(height: 12), AppSkeleton(height: 14)])
+          else
+            DayLine(
+              records: day,
+              goal: _dailyGoal,
+              now: _now,
+              inProgress: !done,
+              detailOf: (r) => r.pending ? 'Salvo no aparelho' : (r.locationName ?? 'Local não identificado'),
+              trailingOf: (r) => [
+                if (r.pending) ...[
+                  Tooltip(message: 'Aguardando sincronização', child: Icon(Icons.cloud_off_rounded, size: 15, color: context.textTertiary)),
+                  const SizedBox(width: 8),
+                ],
               ],
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(info.label,
-                            style: AppText.label(color: done ? context.textPrimary : context.textTertiary).copyWith(fontSize: 14)),
-                        const SizedBox(height: 1),
-                        Text(detail, style: AppText.caption(color: context.textTertiary)),
-                      ],
-                    ),
-                  ),
-                  if (showLateWarning) ...[
-                    const Tooltip(
-                      message: 'A saída ainda não foi registrada',
-                      child: Icon(Icons.warning_amber_rounded, size: 16, color: AppColors.statusRed),
-                    ),
-                    const SizedBox(width: 6),
-                  ],
-                  if (done && record.pending) ...[
-                    Tooltip(
-                      message: 'Aguardando sincronização',
-                      child: Icon(Icons.cloud_off_rounded, size: 15, color: context.textTertiary),
-                    ),
-                    const SizedBox(width: 6),
-                  ],
-                  if (_loadingRecords)
-                    const AppSkeleton(width: 40, height: 14)
-                  else
-                    Text(
-                      done ? formatClock(record.recordedAt) : '--:--',
-                      style: AppText.numeric(AppText.bodySm(
-                          color: done ? context.textPrimary : context.textTertiary, weight: FontWeight.w600)),
-                    ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -848,8 +858,7 @@ class _HomeScreenState extends State<HomeScreen> {
           if (_loadingRecords)
             const AppSkeleton(width: 64, height: 16)
           else
-            Text(formatHours(_monthWorked),
-                style: AppText.numeric(AppText.body(color: context.accentPeach, weight: FontWeight.w600))),
+            Text(formatHours(_monthWorked), style: AppText.numeric(AppText.body(color: context.accentPeach, weight: FontWeight.w700))),
         ],
       ),
     );

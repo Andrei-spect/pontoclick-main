@@ -141,12 +141,17 @@ class _MyScheduleScreenState extends State<MyScheduleScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Informe seu horário de trabalho. Ele define a meta de cada dia e a partir de quando '
-                          'as horas extras começam a contar.',
-                          style: AppText.bodySm(color: context.textSecondary).copyWith(height: 1.45),
+                        AppHeroHeader(
+                          eyebrow: const AppEyebrow(tag: 'Meu horário', text: 'Define a meta de cada dia'),
+                          title: [
+                            ('Sua jornada é de ', HeroTone.plain),
+                            (formatGoal(_draft.weekdays.workDuration), HeroTone.number),
+                            (' por dia.', HeroTone.plain),
+                          ],
+                          lead: 'As horas extras começam a contar depois dessa meta. '
+                              'Informe a entrada, a saída e o intervalo de cada tipo de dia.',
                         ),
-                        const SizedBox(height: 22),
+                        const SizedBox(height: 24),
                         const AppSectionLabel('Segunda a sexta'),
                         const SizedBox(height: 8),
                         _buildShiftCard(context, _Part.weekdays),
@@ -205,7 +210,10 @@ class _MyScheduleScreenState extends State<MyScheduleScreen> {
     Widget divider() => Divider(height: 1, thickness: 1, color: context.hairline, indent: 64);
     return Material(
       color: Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(AppRadius.cards),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.cards),
+        side: BorderSide(color: context.border),
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [

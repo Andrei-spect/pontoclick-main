@@ -9,6 +9,7 @@ import 'records_service.dart';
 import 'time_record.dart';
 import 'user_profile.dart';
 import 'work_schedule.dart';
+import 'day_line.dart';
 
 class RecordsScreen extends StatefulWidget {
   const RecordsScreen({super.key});
@@ -272,20 +273,30 @@ class _RecordsScreenState extends State<RecordsScreen> {
           onRefresh: _loadMonth,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(AppSpace.page, 12, AppSpace.page, MediaQuery.paddingOf(context).bottom + AppSpace.xxl),
+            padding: EdgeInsets.fromLTRB(AppSpace.page, 18, AppSpace.page, MediaQuery.paddingOf(context).bottom + AppSpace.xxl),
             child: AppContentWidth(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppPageTitle(
-                    'Registros',
-                    trailing: AppOutlineButton(
-                      label: _exporting ? 'Gerando PDF...' : 'Exportar PDF',
-                      icon: Icons.download_rounded,
-                      onPressed: _exporting || _loading ? null : _exportMonthPdf,
-                    ),
+                  _buildHero(context),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: AppPrimaryButton(
+                          height: 46,
+                          label: _exporting ? 'Gerando PDF...' : 'Exportar PDF',
+                          icon: Icons.download_rounded,
+                          onPressed: _exporting || _loading ? null : _exportMonthPdf,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      AppSquareIconButton(icon: Icons.chevron_left_rounded, tooltip: 'Mês anterior', onPressed: () => _changeMonth(-1)),
+                      const SizedBox(width: 8),
+                      AppSquareIconButton(icon: Icons.chevron_right_rounded, tooltip: 'Próximo mês', onPressed: () => _changeMonth(1)),
+                    ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 18),
                   _buildCalendarCard(context),
                   const SizedBox(height: 14),
                   _buildDayCard(context),
@@ -295,6 +306,53 @@ class _RecordsScreenState extends State<RecordsScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  /// Selo do mês + título com o resumo (horas e extras), no padrão hero-01.
+  Widget _buildHero(BuildContext context) {
+    final month = '${_meses[_focusedMonth.month - 1]} de ${_focusedMonth.year}';
+    final missing = _missingExitDays;
+    final total = _monthTotal;
+    final overtime = _monthOvertime;
+    final complete = _byDay.values.where(_hasExit).length;
+
+    final List<(String, HeroTone)> title;
+    if (_byDay.isEmpty) {
+      title = [('Nenhum ponto em ', HeroTone.plain), (_meses[_focusedMonth.month - 1].toLowerCase(), HeroTone.accent), ('.', HeroTone.plain)];
+    } else if (overtime > Duration.zero) {
+      title = [
+        (formatHours(total), HeroTone.number),
+        (' trabalhadas, ', HeroTone.plain),
+        (formatOvertime(overtime), HeroTone.accent),
+        (' de extras.', HeroTone.plain),
+      ];
+    } else {
+      title = [(formatHours(total), HeroTone.number), (' trabalhadas em ${_meses[_focusedMonth.month - 1].toLowerCase()}.', HeroTone.plain)];
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppEyebrow(
+          tag: month,
+          text: '${_byDay.length} ${_byDay.length == 1 ? 'dia' : 'dias'} com ponto · '
+              '$missing sem saída',
+        ),
+        const SizedBox(height: 14),
+        if (_loading && !_loadedOnce)
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [AppSkeleton(width: 240, height: 30), SizedBox(height: 8), AppSkeleton(width: 160, height: 30)],
+          )
+        else ...[
+          AppHeroTitle(title, fontSize: 32),
+          const SizedBox(height: 10),
+          AppLead(_byDay.isEmpty
+              ? 'Os registros aparecem aqui assim que você bate o ponto.'
+              : '$complete ${complete == 1 ? 'dia completo' : 'dias completos'}. As horas extras seguem o seu horário de trabalho.'),
+        ],
+      ],
     );
   }
 
@@ -328,29 +386,25 @@ class _RecordsScreenState extends State<RecordsScreen> {
     final missing = _missingExitDays;
     final overtime = _monthOvertime;
 
+    final complete = _byDay.values.where(_hasExit).length;
+
     return AppCard(
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 14),
+      padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
       child: Column(
         children: [
-          Row(
-            children: [
-              IconButton(
-                tooltip: 'Mês anterior',
-                icon: Icon(Icons.chevron_left_rounded, color: context.textSecondary),
-                onPressed: () => _changeMonth(-1),
-              ),
-              Expanded(
-                child: Text('${_meses[_focusedMonth.month - 1]} de ${_focusedMonth.year}',
-                    textAlign: TextAlign.center, style: AppText.bodySm(weight: FontWeight.w600)),
-              ),
-              IconButton(
-                tooltip: 'Próximo mês',
-                icon: Icon(Icons.chevron_right_rounded, color: context.textSecondary),
-                onPressed: () => _changeMonth(1),
-              ),
-            ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text('${_meses[_focusedMonth.month - 1]} de ${_focusedMonth.year}',
+                      style: AppText.bodySm(weight: FontWeight.w700)),
+                ),
+                if (complete > 0)
+                  AppBadge('$complete ${complete == 1 ? 'dia completo' : 'dias completos'}', color: AppColors.statusGreenStrong),
+              ],
+            ),
           ),
-          const SizedBox(height: 6),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Column(
@@ -495,12 +549,14 @@ class _RecordsScreenState extends State<RecordsScreen> {
     final dateText = '${_dias[_selectedDate.weekday - 1]}, ${two(_selectedDate.day)}/${two(_selectedDate.month)}';
 
     final dayOvertime = _overtimeOfDay(key, list);
+    final inProgress = _isInProgress(key) && !hasExit;
     String? totalText;
     if (hasExit) {
-      totalText = 'Total ${formatHours(workedDuration(list))}';
-      if (dayOvertime > Duration.zero) totalText += ' · extra ${formatOvertime(dayOvertime)}';
-    } else if (_isInProgress(key) && list.isNotEmpty) {
-      totalText = 'Em andamento';
+      totalText = 'Total ${formatHours(workedDuration(list))} · ${list.length} de 4 marcações';
+    } else if (inProgress && list.isNotEmpty) {
+      totalText = 'Em andamento · ${list.length} de 4 marcações';
+    } else if (list.isNotEmpty) {
+      totalText = '${list.length} de 4 marcações';
     }
 
     return AppCard(
@@ -508,13 +564,24 @@ class _RecordsScreenState extends State<RecordsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: Semantics(header: true, child: Text(dateText, style: AppText.bodySm(weight: FontWeight.w600)))),
-              if (totalText != null && !_loading)
-                Text(totalText, style: AppText.numeric(AppText.label(color: context.accentPeach, weight: FontWeight.w600))),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Semantics(header: true, child: Text(dateText, style: AppText.bodySm(weight: FontWeight.w700))),
+                    if (totalText != null && !_loading) ...[
+                      const SizedBox(height: 2),
+                      Text(totalText, style: AppText.numeric(AppText.caption(color: context.textTertiary))),
+                    ],
+                  ],
+                ),
+              ),
+              if (dayOvertime > Duration.zero && !_loading) AppBadge('extra ${formatOvertime(dayOvertime)}'),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 14),
           if (_loading)
             Column(
               children: List.generate(
@@ -548,7 +615,18 @@ class _RecordsScreenState extends State<RecordsScreen> {
               message: 'Os registros aparecem aqui assim que você bate o ponto.',
             )
           else
-            ...list.map((r) => _buildRecordRow(context, r)),
+            DayLine(
+              records: list,
+              goal: ScheduleStore.schedule.value.goalForWorkDate(key),
+              now: DateTime.now(),
+              inProgress: inProgress,
+              detailOf: (r) => [
+                if (r.pending) 'Salvo no aparelho' else (r.locationName ?? 'Local não identificado'),
+                if (r.edited && r.originalRecordedAt != null) 'original ${formatClock(r.originalRecordedAt!)}',
+              ].join(' · '),
+              trailingOf: (r) => _recordActions(context, r),
+              actionOf: (r) => _recordEditButton(context, r),
+            ),
           if (missingExit && !_loading) ...[
             const SizedBox(height: 8),
             const AppNotice(icon: Icons.warning_amber_rounded, text: 'Dia sem registro de saída.', color: AppColors.statusOrange),
@@ -562,61 +640,30 @@ class _RecordsScreenState extends State<RecordsScreen> {
     );
   }
 
-  Widget _buildRecordRow(BuildContext context, TimeRecord r) {
-    final info = punchTypeInfo[r.type]!;
-    final editable = r.id != null && !r.pending;
-
-    final details = <String>[
-      if (r.pending) 'Salvo no aparelho' else (r.locationName ?? 'Local não identificado'),
-      if (r.edited && r.originalRecordedAt != null) 'original ${formatClock(r.originalRecordedAt!)}',
-    ];
-
-    return Container(
-      constraints: const BoxConstraints(minHeight: 52),
-      decoration: BoxDecoration(border: Border(top: BorderSide(color: context.hairline))),
-      child: Row(
-        children: [
-          Container(width: 10, height: 10, decoration: BoxDecoration(shape: BoxShape.circle, color: info.color)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(info.label, style: AppText.label(color: context.textPrimary).copyWith(fontSize: 14)),
-                  const SizedBox(height: 2),
-                  Text(details.join(' · '), style: AppText.caption(color: context.textTertiary)),
-                ],
-              ),
-            ),
-          ),
-          if (r.pending) ...[
-            Tooltip(message: 'Aguardando sincronização', child: Icon(Icons.cloud_off_rounded, size: 15, color: context.textTertiary)),
-            const SizedBox(width: 8),
-          ],
-          if (r.edited) ...[
-            Tooltip(
-              message: r.originalRecordedAt == null ? 'Horário editado' : 'Horário original: ${formatClock(r.originalRecordedAt!)}',
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: context.violetSoft, borderRadius: BorderRadius.circular(AppRadius.pills)),
-                child: Text('Editado', style: AppText.caption(color: context.violetText, weight: FontWeight.w600).copyWith(fontSize: 11)),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-          Text(formatClock(r.recordedAt), style: AppText.numeric(AppText.bodySm(weight: FontWeight.w600))),
-          if (editable)
-            IconButton(
-              tooltip: 'Editar horário de ${info.label.toLowerCase()}',
-              icon: Icon(Icons.edit_outlined, size: 18, color: context.textTertiary),
-              onPressed: _saving ? null : () => _editRecord(r),
-            )
-          else
-            const SizedBox(width: 12),
+  /// Selos antes do horário de cada marcação: não sincronizado e "Editado".
+  List<Widget> _recordActions(BuildContext context, TimeRecord r) => [
+        if (r.pending) ...[
+          Tooltip(message: 'Aguardando sincronização', child: Icon(Icons.cloud_off_rounded, size: 15, color: context.textTertiary)),
+          const SizedBox(width: 8),
         ],
-      ),
+        if (r.edited) ...[
+          Tooltip(
+            message: r.originalRecordedAt == null ? 'Horário editado' : 'Horário original: ${formatClock(r.originalRecordedAt!)}',
+            child: const AppBadge('Editado'),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ];
+
+  /// Lápis depois do horário: corrige o horário de uma marcação já sincronizada.
+  Widget? _recordEditButton(BuildContext context, TimeRecord r) {
+    if (r.id == null || r.pending) return null;
+    final info = punchTypeInfo[r.type]!;
+    return IconButton(
+      tooltip: 'Editar horário de ${info.label.toLowerCase()}',
+      visualDensity: VisualDensity.compact,
+      icon: Icon(Icons.edit_outlined, size: 18, color: context.textTertiary),
+      onPressed: _saving ? null : () => _editRecord(r),
     );
   }
 }

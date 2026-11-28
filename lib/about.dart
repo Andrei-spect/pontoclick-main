@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'app_theme.dart';
 import 'widgets.dart';
+import 'brand_mark.dart';
 import 'api_config.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
-  static const appVersion = '1.0.6';
+  static const appVersion = '1.0.7';
   static const _linkedinUrl = 'https://www.linkedin.com/in/andrei-barbosa-7ba99a22a/';
   static const _email = 'andrei.barbosa009@gmail.com';
 
@@ -31,25 +32,34 @@ class AboutScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 8),
-                Center(child: AppLogo(iconSize: 34, textStyle: AppText.heading(weight: FontWeight.w700))),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(AppRadius.pills)),
-                    child: Text('Versão $appVersion', style: AppText.caption(color: context.textSecondary, weight: FontWeight.w500)),
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(color: context.violetSoft, shape: BoxShape.circle),
+                    child: const Center(child: BrandMark(size: 52)),
                   ),
                 ),
-                const SizedBox(height: 24),
-                AppCard(
-                  padding: const EdgeInsets.all(18),
-                  child: Text(
-                    'O PontoClick é um app de controle de ponto simples e seguro, pensado para profissionais que estão sempre em movimento. Registre entradas, intervalos e saídas em poucos toques, de onde você estiver.',
-                    style: AppText.bodySm(color: context.textSecondary).copyWith(height: 1.55),
+                const SizedBox(height: 16),
+                const Center(child: AppEyebrow(tag: 'Versão $appVersion', text: 'Novembro de 2026')),
+                const SizedBox(height: 12),
+                Center(
+                  child: Text.rich(
+                    TextSpan(children: [
+                      TextSpan(text: 'Ponto', style: TextStyle(color: context.textPrimary)),
+                      TextSpan(text: 'Click', style: TextStyle(color: context.accentPeach)),
+                    ]),
+                    style: AppText.headingLg(weight: FontWeight.w800).copyWith(fontSize: 34, letterSpacing: -1.4),
                   ),
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 10),
+                const AppLead(
+                  'Nasceu para um motorista que saía para a estrada antes de a empresa abrir e anotava o ponto à mão. '
+                  'Registre entradas, intervalos e saídas em poucos toques, de onde você estiver.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 26),
                 const AppSectionLabel('Desenvolvedor'),
                 const SizedBox(height: 8),
                 AppCard(

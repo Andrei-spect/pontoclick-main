@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_theme.dart';
+import 'brand_mark.dart';
 
 /// Largura máxima do conteúdo em telas largas (tablet, web, desktop).
 const double kContentMaxWidth = 560;
@@ -18,45 +19,96 @@ class AppContentWidth extends StatelessWidget {
   }
 }
 
-/// Seta de voltar padrão, usada em todas as telas secundárias.
-class AppBackButton extends StatelessWidget {
-  const AppBackButton({super.key});
+/// Botão quadrado com borda (voltar, menu), no padrão do header do hero-01.
+class AppSquareIconButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
+  const AppSquareIconButton({super.key, required this.icon, required this.tooltip, this.onPressed});
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: 'Voltar',
-      icon: Icon(Icons.arrow_back_ios_new_rounded, color: context.textPrimary, size: 20),
-      onPressed: () => Navigator.maybePop(context),
-      style: IconButton.styleFrom(minimumSize: const Size(44, 44)),
+    return Tooltip(
+      message: tooltip,
+      child: Semantics(
+        button: true,
+        label: tooltip,
+        excludeSemantics: true,
+        child: Material(
+          color: Theme.of(context).cardColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.inner),
+            side: BorderSide(color: context.border),
+          ),
+          child: InkWell(
+            onTap: onPressed,
+            customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.inner)),
+            child: SizedBox(width: 40, height: 40, child: Icon(icon, size: 19, color: context.textPrimary)),
+          ),
+        ),
+      ),
     );
   }
 }
 
-/// Barra superior das telas secundárias: voltar + título.
-PreferredSizeWidget appSecondaryBar(String? title) {
+/// Seta de voltar padrão, usada em todas as telas secundárias.
+class AppBackButton extends StatelessWidget {
+  final String tooltip;
+  const AppBackButton({super.key, this.tooltip = 'Voltar'});
+
+  @override
+  Widget build(BuildContext context) => AppSquareIconButton(
+        icon: Icons.chevron_left_rounded,
+        tooltip: tooltip,
+        onPressed: () => Navigator.maybePop(context),
+      );
+}
+
+/// Barra superior das telas secundárias: voltar + caminho em pílula ("Perfil / Editar perfil").
+/// [parent] é a tela de onde se veio.
+PreferredSizeWidget appSecondaryBar(String? title, {String parent = 'Perfil'}) {
   return AppBar(
-    leading: const Padding(padding: EdgeInsets.only(left: 4), child: AppBackButton()),
-    leadingWidth: 56,
-    title: title == null ? null : Text(title),
+    toolbarHeight: 64,
+    automaticallyImplyLeading: false,
+    titleSpacing: AppSpace.page,
+    title: Builder(
+      builder: (context) => Row(
+        children: [
+          AppBackButton(tooltip: 'Voltar para $parent'),
+          const SizedBox(width: 12),
+          Flexible(child: AppCrumb(parent: parent, title: title)),
+        ],
+      ),
+    ),
   );
 }
 
-/// Título grande das abas principais (Registros, Perfil).
-class AppPageTitle extends StatelessWidget {
-  final String text;
-  final Widget? trailing;
-  const AppPageTitle(this.text, {super.key, this.trailing});
+/// Caminho em pílula: "Perfil / Editar perfil".
+class AppCrumb extends StatelessWidget {
+  final String parent;
+  final String? title;
+  const AppCrumb({super.key, required this.parent, this.title});
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 48),
-      child: Row(
-        children: [
-          Expanded(child: Semantics(header: true, child: Text(text, style: AppText.heading()))),
-          ?trailing,
-        ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: context.cardRaised,
+        borderRadius: BorderRadius.circular(AppRadius.pills),
+        border: Border.all(color: context.border),
+      ),
+      child: Text.rich(
+        TextSpan(children: [
+          TextSpan(text: parent),
+          if (title != null) ...[
+            const TextSpan(text: '  /  '),
+            TextSpan(text: title, style: TextStyle(color: context.textPrimary, fontWeight: FontWeight.w600)),
+          ],
+        ]),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: AppText.caption(color: context.textTertiary).copyWith(fontSize: 12.5),
       ),
     );
   }
@@ -67,7 +119,7 @@ class AppPageTitle extends StatelessWidget {
 class AppTextField extends StatelessWidget {
   final String label;
   final String? hint;
-  final IconData icon;
+  final IconData? icon; // não é desenhado no padrão atual (campo sem ícone); mantido por compatibilidade
   final TextEditingController? controller;
   final bool obscureText;
   final Widget? suffixIcon;
@@ -85,7 +137,7 @@ class AppTextField extends StatelessWidget {
   const AppTextField({
     super.key,
     required this.label,
-    required this.icon,
+    this.icon,
     this.hint,
     this.controller,
     this.obscureText = false,
@@ -104,8 +156,9 @@ class AppTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    OutlineInputBorder border(Color color, [double width = 1.5]) => OutlineInputBorder(
-          borderRadius: BorderRadius.circular(maxLines > 1 ? AppRadius.cards : AppRadius.inputs),
+    // Campo no padrão shadcn: rótulo acima, borda visível, sem ícone interno; violeta no foco.
+    OutlineInputBorder border(Color color, [double width = 1]) => OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.inputs),
           borderSide: BorderSide(color: color, width: width),
         );
 
@@ -118,9 +171,9 @@ class AppTextField extends StatelessWidget {
             if (labelSuffix != null)
               TextSpan(text: ' $labelSuffix', style: TextStyle(color: context.textTertiary, fontWeight: FontWeight.w400)),
           ]),
-          style: AppText.label(color: context.textSecondary),
+          style: AppText.label(color: context.textPrimary),
         ),
-        const SizedBox(height: 7),
+        const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           focusNode: focusNode,
@@ -138,17 +191,16 @@ class AppTextField extends StatelessWidget {
             hintText: hint,
             counterText: '',
             hintStyle: AppText.bodySm(color: context.textTertiary),
-            prefixIcon: maxLines > 1 ? null : Icon(icon, size: 18, color: context.textTertiary),
-            prefixIconConstraints: const BoxConstraints(minWidth: 46, minHeight: 52),
             suffixIcon: suffixIcon,
             filled: true,
             fillColor: Theme.of(context).cardColor,
-            contentPadding: EdgeInsets.symmetric(horizontal: maxLines > 1 ? 16 : 18, vertical: 16),
-            border: border(Colors.transparent),
-            enabledBorder: border(Colors.transparent),
-            focusedBorder: border(AppColors.twilightViolet),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            border: border(context.border),
+            enabledBorder: border(context.border),
+            focusedBorder: border(AppColors.twilightViolet, 1.6),
             errorBorder: border(AppColors.statusRed),
-            focusedErrorBorder: border(AppColors.statusRed),
+            focusedErrorBorder: border(AppColors.statusRed, 1.6),
             errorStyle: AppText.caption(color: context.isDarkMode ? const Color(0xFFF87171) : const Color(0xFFC62828)),
             errorMaxLines: 2,
           ),
@@ -191,7 +243,7 @@ class AppPrimaryButton extends StatelessWidget {
     this.isLoading = false,
     this.icon,
     this.color,
-    this.height = 52,
+    this.height = 50,
   });
 
   @override
@@ -243,7 +295,10 @@ class AppOutlineButton extends StatelessWidget {
   final IconData? icon;
   final VoidCallback? onPressed;
 
-  const AppOutlineButton({super.key, required this.label, this.icon, this.onPressed});
+  final IconData? trailingIcon;
+  final double height;
+
+  const AppOutlineButton({super.key, required this.label, this.icon, this.onPressed, this.trailingIcon, this.height = 40});
 
   @override
   Widget build(BuildContext context) {
@@ -252,8 +307,9 @@ class AppOutlineButton extends StatelessWidget {
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
         foregroundColor: color,
-        side: BorderSide(color: Theme.of(context).dividerColor),
-        minimumSize: const Size(0, 40),
+        backgroundColor: Theme.of(context).cardColor,
+        side: BorderSide(color: context.border),
+        minimumSize: Size(0, height),
         padding: const EdgeInsets.symmetric(horizontal: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.buttons)),
       ),
@@ -261,7 +317,8 @@ class AppOutlineButton extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[Icon(icon, size: 16, color: color), const SizedBox(width: 7)],
-          Text(label, style: AppText.label(color: color)),
+          Flexible(child: Text(label, overflow: TextOverflow.ellipsis, style: AppText.label(color: color, weight: FontWeight.w600))),
+          if (trailingIcon != null) ...[const SizedBox(width: 6), Icon(trailingIcon, size: 16, color: color)],
         ],
       ),
     );
@@ -326,7 +383,11 @@ class AppCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: padding,
-      decoration: BoxDecoration(color: color ?? Theme.of(context).cardColor, borderRadius: BorderRadius.circular(AppRadius.cards)),
+      decoration: BoxDecoration(
+        color: color ?? Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(AppRadius.cards),
+        border: Border.all(color: context.border),
+      ),
       child: child,
     );
   }
@@ -397,7 +458,7 @@ class AppStatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final chip = Material(
       color: Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(AppRadius.pills),
+      shape: StadiumBorder(side: BorderSide(color: context.border)),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.pills),
@@ -509,7 +570,8 @@ class AppMenuItemData {
   final String label;
   final VoidCallback onTap;
   final Color? accent; // cor do ícone; padrão violeta
-  const AppMenuItemData({required this.icon, required this.label, required this.onTap, this.accent});
+  final String? badge; // resumo à direita (ex: "8h · sáb 4h")
+  const AppMenuItemData({required this.icon, required this.label, required this.onTap, this.accent, this.badge});
 }
 
 /// Card com uma lista de itens de menu (ícone + texto + seta), usado no Perfil.
@@ -521,7 +583,10 @@ class AppMenuCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(AppRadius.cards),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.cards),
+        side: BorderSide(color: context.border),
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: List.generate(items.length, (i) {
@@ -540,6 +605,7 @@ class AppMenuCard extends StatelessWidget {
                         AppIconTile(icon: item.icon, color: item.accent),
                         const SizedBox(width: 14),
                         Expanded(child: Text(item.label, style: AppText.bodySm(color: context.textPrimary))),
+                        if (item.badge != null) ...[AppBadge(item.badge!), const SizedBox(width: 6)],
                         Icon(Icons.chevron_right_rounded, color: context.textTertiary, size: 20),
                       ],
                     ),
@@ -555,125 +621,259 @@ class AppMenuCard extends StatelessWidget {
   }
 }
 
-/// Nav inferior em pill flutuante, compartilhada entre Ponto / Registros / Perfil.
-/// A aba ativa ganha fundo violeta suave com ícone + rótulo lado a lado.
-class AppBottomNav extends StatelessWidget {
+/// Menu das abas em pílula (header do hero-01): a aba ativa fica em violeta.
+class AppPillNav extends StatelessWidget {
   final int activeIndex; // 0 = Ponto, 1 = Registros, 2 = Perfil
   final ValueChanged<int> onTap;
 
-  const AppBottomNav({super.key, required this.activeIndex, required this.onTap});
+  const AppPillNav({super.key, required this.activeIndex, required this.onTap});
 
-  static const _items = [
-    (icon: Icons.schedule_rounded, label: 'Ponto'),
-    (icon: Icons.calendar_month_outlined, label: 'Registros'),
-    (icon: Icons.person_outline_rounded, label: 'Perfil'),
-  ];
+  static const labels = ['Ponto', 'Registros', 'Perfil'];
 
   @override
   Widget build(BuildContext context) {
-    final dark = context.isDarkMode;
-    // A barra tem altura fixa: acompanha o tamanho de fonte do sistema só até 1.2x.
     return MediaQuery.withClampedTextScaling(
-      maxScaleFactor: 1.2,
-      child: SafeArea(
-      top: false,
-      child: Center(
-        heightFactor: 1,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(40, 0, 40, 16),
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(AppRadius.pills),
-              border: Border.all(color: dark ? const Color(0xFF262626) : AppColors.lightDivider),
-              boxShadow: [
-                BoxShadow(
-                  color: dark ? Colors.black.withValues(alpha: 0.55) : const Color(0xFF68410D).withValues(alpha: 0.16),
-                  blurRadius: 28,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                for (var i = 0; i < _items.length; i++)
-                  Expanded(
-                    child: _NavItem(
-                      icon: _items[i].icon,
-                      label: _items[i].label,
-                      active: activeIndex == i,
+      maxScaleFactor: 1.3,
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: context.cardRaised,
+          borderRadius: BorderRadius.circular(AppRadius.pills),
+          border: Border.all(color: context.border),
+        ),
+        child: Row(
+          children: [
+            for (var i = 0; i < labels.length; i++)
+              Expanded(
+                child: Semantics(
+                  button: true,
+                  selected: activeIndex == i,
+                  label: labels[i],
+                  excludeSemantics: true,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
                       onTap: () => onTap(i),
+                      borderRadius: BorderRadius.circular(AppRadius.pills),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOut,
+                        height: 38,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: activeIndex == i ? AppColors.twilightViolet : Colors.transparent,
+                          borderRadius: BorderRadius.circular(AppRadius.pills),
+                          boxShadow: activeIndex == i
+                              ? [BoxShadow(color: AppColors.twilightViolet.withValues(alpha: 0.35), blurRadius: 10, offset: const Offset(0, 3))]
+                              : null,
+                        ),
+                        child: Text(
+                          labels[i],
+                          style: AppText.label(
+                            color: activeIndex == i ? Colors.white : context.textTertiary,
+                            weight: activeIndex == i ? FontWeight.w600 : FontWeight.w500,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-              ],
-            ),
-          ),
+                ),
+              ),
+          ],
         ),
-      ),
       ),
     );
   }
 }
 
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-  const _NavItem({required this.icon, required this.label, required this.active, required this.onTap});
+/// Selo acima do título (o "Novo · 1.0.6" do hero-01): uma etiqueta colorida
+/// ou um ponto de status, seguido de um texto curto.
+class AppEyebrow extends StatelessWidget {
+  final String text;
+  final String? tag;
+  final IconData? tagIcon;
+  final Color? dotColor;
+  final bool danger;
+  final VoidCallback? onTap;
+
+  const AppEyebrow({super.key, required this.text, this.tag, this.tagIcon, this.dotColor, this.danger = false, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? context.violetText : context.textTertiary;
-    return Semantics(
-      button: true,
-      selected: active,
-      label: label,
-      excludeSemantics: true,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(AppRadius.pills),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-            height: 52,
-            decoration: BoxDecoration(
-              color: active ? context.violetSoft : Colors.transparent,
-              borderRadius: BorderRadius.circular(AppRadius.pills),
+    final hasTag = tag != null || tagIcon != null;
+    final tagColor = danger ? AppColors.statusRedStrong : AppColors.twilightViolet;
+    final content = Padding(
+      padding: EdgeInsets.fromLTRB(hasTag ? 4 : 12, 4, 12, 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (hasTag) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+              decoration: BoxDecoration(color: tagColor, borderRadius: BorderRadius.circular(AppRadius.pills)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (tagIcon != null) Icon(tagIcon, size: 12, color: Colors.white),
+                  if (tagIcon != null && tag != null) const SizedBox(width: 4),
+                  if (tag != null)
+                    Text(tag!, style: AppText.caption(color: Colors.white, weight: FontWeight.w600).copyWith(fontSize: 11.5)),
+                ],
+              ),
             ),
-            child: active
-                ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(icon, size: 19, color: color),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(label,
-                            overflow: TextOverflow.ellipsis, style: AppText.label(color: color, weight: FontWeight.w600)),
-                      ),
-                    ],
-                  )
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(icon, size: 19, color: color),
-                      const SizedBox(height: 2),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(label,
-                              maxLines: 1, style: AppText.caption(color: color, weight: FontWeight.w500).copyWith(fontSize: 11)),
-                        ),
-                      ),
-                    ],
-                  ),
+            const SizedBox(width: 8),
+          ],
+          if (dotColor != null) ...[
+            Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: dotColor)),
+            const SizedBox(width: 8),
+          ],
+          Flexible(
+            child: Text(text,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.caption(color: context.textSecondary).copyWith(fontSize: 12.5)),
           ),
+          if (onTap != null) ...[
+            const SizedBox(width: 4),
+            Icon(Icons.chevron_right_rounded, size: 16, color: context.textTertiary),
+          ],
+        ],
+      ),
+    );
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Material(
+        color: Theme.of(context).cardColor,
+        shape: StadiumBorder(side: BorderSide(color: context.border)),
+        clipBehavior: Clip.antiAlias,
+        child: onTap == null ? content : InkWell(onTap: onTap, child: content),
+      ),
+    );
+  }
+}
+
+/// Tom de cada trecho do [AppHeroTitle].
+enum HeroTone { plain, accent, number, danger }
+
+/// Título grande e forte das telas (o headline do hero-01). Cada trecho pode
+/// ganhar destaque: violeta (accent), pêssego com números de largura fixa
+/// (number) ou vermelho (danger).
+class AppHeroTitle extends StatelessWidget {
+  final List<(String, HeroTone)> parts;
+  final double fontSize;
+  final TextAlign textAlign;
+
+  const AppHeroTitle(this.parts, {super.key, this.fontSize = 32, this.textAlign = TextAlign.start});
+
+  @override
+  Widget build(BuildContext context) {
+    final base = AppText.headingLg(color: context.textPrimary, weight: FontWeight.w800)
+        .copyWith(fontSize: fontSize, height: 1.06, letterSpacing: -fontSize * 0.04);
+    return Semantics(
+      header: true,
+      child: Text.rich(
+        TextSpan(
+          children: [
+            for (final (text, tone) in parts)
+              TextSpan(
+                text: text,
+                style: switch (tone) {
+                  HeroTone.plain => null,
+                  HeroTone.accent => TextStyle(color: context.violetText),
+                  HeroTone.number => TextStyle(color: context.accentPeach, fontFeatures: const [FontFeature.tabularFigures()]),
+                  HeroTone.danger => TextStyle(color: context.dangerText),
+                },
+              ),
+          ],
         ),
+        textAlign: textAlign,
+        style: base,
+      ),
+    );
+  }
+}
+
+/// Texto de apoio logo abaixo do título.
+class AppLead extends StatelessWidget {
+  final String text;
+  final TextAlign textAlign;
+  const AppLead(this.text, {super.key, this.textAlign = TextAlign.start});
+
+  @override
+  Widget build(BuildContext context) => Text(
+        text,
+        textAlign: textAlign,
+        style: AppText.bodySm(color: context.textSecondary).copyWith(fontSize: 14.5, height: 1.5),
+      );
+}
+
+/// Abertura padrão das telas: selo + título grande + texto de apoio.
+class AppHeroHeader extends StatelessWidget {
+  final Widget? eyebrow;
+  final List<(String, HeroTone)> title;
+  final String? lead;
+  final double fontSize;
+
+  const AppHeroHeader({super.key, this.eyebrow, required this.title, this.lead, this.fontSize = 32});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (eyebrow != null) ...[eyebrow!, const SizedBox(height: 14)],
+        AppHeroTitle(title, fontSize: fontSize),
+        if (lead != null) ...[const SizedBox(height: 10), AppLead(lead!)],
+      ],
+    );
+  }
+}
+
+/// Etiqueta pequena arredondada (ex: "extra +0h 48m", "1 local").
+class AppBadge extends StatelessWidget {
+  final String text;
+  final Color? color;
+  const AppBadge(this.text, {super.key, this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = color ?? context.violetText;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color == null ? context.violetSoft : fg.withValues(alpha: context.isDarkMode ? 0.16 : 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.pills),
+      ),
+      child: Text(text,
+          maxLines: 1,
+          style: AppText.numeric(AppText.caption(color: fg, weight: FontWeight.w600).copyWith(fontSize: 11.5))),
+    );
+  }
+}
+
+/// Marca pequena do header: relógio no círculo violeta + "PontoClick".
+class AppBrand extends StatelessWidget {
+  final double size;
+  const AppBrand({super.key, this.size = 28});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'PontoClick',
+      excludeSemantics: true,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          BrandMark(size: size),
+          SizedBox(width: size * 0.32),
+          Text.rich(
+            TextSpan(children: [
+              TextSpan(text: 'Ponto', style: TextStyle(color: context.textPrimary)),
+              TextSpan(text: 'Click', style: TextStyle(color: context.accentPeach)),
+            ]),
+            style: AppText.bodySm(weight: FontWeight.w700).copyWith(fontSize: size * 0.6, letterSpacing: -0.3),
+          ),
+        ],
       ),
     );
   }
@@ -720,41 +920,6 @@ class AppFeedback {
   static void success(BuildContext context, String message) => show(context, message, type: AppFeedbackType.success);
   static void error(BuildContext context, String message) => show(context, message, type: AppFeedbackType.error);
   static void info(BuildContext context, String message) => show(context, message, type: AppFeedbackType.info);
-}
-
-/// Marca do app: ícone de relógio no círculo violeta + "PontoClick".
-class AppLogo extends StatelessWidget {
-  final double iconSize;
-  final TextStyle? textStyle;
-  const AppLogo({super.key, this.iconSize = 40, this.textStyle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: EdgeInsets.all(iconSize * 0.45),
-          decoration: BoxDecoration(color: AppColors.twilightViolet.withValues(alpha: 0.18), shape: BoxShape.circle),
-          child: Icon(Icons.access_time_filled_rounded, size: iconSize, color: AppColors.twilightViolet),
-        ),
-        SizedBox(height: iconSize * 0.35),
-        Semantics(
-          label: 'PontoClick',
-          excludeSemantics: true,
-          child: RichText(
-            text: TextSpan(
-              style: textStyle ?? AppText.headingLg(weight: FontWeight.w700).copyWith(fontSize: 34),
-              children: [
-                TextSpan(text: 'Ponto', style: TextStyle(color: context.textPrimary)),
-                TextSpan(text: 'Click', style: TextStyle(color: context.accentPeach)),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 /// Transição com fade — mais leve que o slide padrão do MaterialPageRoute.

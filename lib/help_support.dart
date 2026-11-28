@@ -91,6 +91,11 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const AppHeroHeader(
+                    eyebrow: AppEyebrow(tag: 'Suporte', text: 'Respondemos no seu e-mail'),
+                    title: [('Como podemos ', HeroTone.plain), ('ajudar?', HeroTone.accent)],
+                  ),
+                  const SizedBox(height: 24),
                   const AppSectionLabel('Fale com a gente'),
                   const SizedBox(height: 8),
                   AppMenuCard(items: [
@@ -120,7 +125,10 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
   Widget _buildFaqCard(BuildContext context) {
     return Material(
       color: Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(AppRadius.cards),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.cards),
+        side: BorderSide(color: context.border),
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: List.generate(_faqs.length, (i) {

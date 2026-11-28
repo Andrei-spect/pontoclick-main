@@ -84,12 +84,16 @@ class _WorkLocationsScreenState extends State<WorkLocationsScreen> {
                         builder: (context, locations, _) => Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Ao bater o ponto, o app compara sua localização com estes locais e registra o nome do local junto com o ponto.',
-                              style: AppText.label(color: context.textSecondary, weight: FontWeight.w400)
-                                  .copyWith(fontSize: 14, height: 1.45),
+                            AppHeroHeader(
+                              eyebrow: AppEyebrow(
+                                tagIcon: Icons.location_on_outlined,
+                                tag: '${locations.length} de 20',
+                                text: locations.length == 1 ? 'local cadastrado' : 'locais cadastrados',
+                              ),
+                              title: const [('Onde você ', HeroTone.plain), ('bate o ponto.', HeroTone.accent)],
+                              lead: 'Ao bater o ponto, o app compara sua localização com estes locais e registra o nome do local junto com o ponto.',
                             ),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 22),
                             if (_loading && locations.isEmpty)
                               AppCard(
                                 child: Column(
@@ -120,7 +124,10 @@ class _WorkLocationsScreenState extends State<WorkLocationsScreen> {
                             else
                               Material(
                                 color: Theme.of(context).cardColor,
-                                borderRadius: BorderRadius.circular(AppRadius.cards),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(AppRadius.cards),
+                                  side: BorderSide(color: context.border),
+                                ),
                                 clipBehavior: Clip.antiAlias,
                                 child: Column(
                                   children: [
@@ -338,7 +345,7 @@ class _LocationEditorScreenState extends State<_LocationEditorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: appSecondaryBar(_isNew ? 'Adicionar local' : 'Editar local'),
+      appBar: appSecondaryBar(_isNew ? 'Adicionar local' : 'Editar local', parent: 'Locais de trabalho'),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(AppSpace.xxl, 8, AppSpace.xxl, AppSpace.xxl),
@@ -348,6 +355,10 @@ class _LocationEditorScreenState extends State<_LocationEditorScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  AppHeroTitle(_isNew
+                      ? const [('Novo ', HeroTone.plain), ('local de trabalho.', HeroTone.accent)]
+                      : const [('Editar ', HeroTone.plain), ('local de trabalho.', HeroTone.accent)]),
+                  const SizedBox(height: 22),
                   AppTextField(
                     label: 'Nome do local',
                     hint: 'Ex.: Escritório Central, Loja Centro',

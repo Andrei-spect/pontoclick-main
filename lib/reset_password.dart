@@ -115,7 +115,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: appSecondaryBar(null),
+      appBar: appSecondaryBar('Redefinir senha', parent: 'Recuperar senha'),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(AppSpace.xxl, 4, AppSpace.xxl, AppSpace.xxl),
@@ -126,8 +126,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Semantics(header: true, child: Text('Redefinir senha', style: AppText.heading())),
-                    const SizedBox(height: 6),
+                    const AppEyebrow(tag: 'Código enviado', text: 'Vale por 15 minutos'),
+                    const SizedBox(height: 14),
+                    const AppHeroTitle([('Crie uma ', HeroTone.plain), ('nova senha.', HeroTone.accent)]),
+                    const SizedBox(height: 10),
                     Text.rich(
                       TextSpan(children: [
                         const TextSpan(text: 'Digite o código enviado para '),

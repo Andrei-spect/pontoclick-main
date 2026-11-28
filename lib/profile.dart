@@ -17,6 +17,9 @@ import 'auth_service.dart';
 import 'app_avatar.dart';
 import 'user_profile.dart';
 import 'user_service.dart';
+import 'work_schedule.dart';
+import 'location_service.dart';
+import 'time_record.dart' show formatGoal;
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -67,34 +70,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(AppSpace.page, 12, AppSpace.page, MediaQuery.paddingOf(context).bottom + AppSpace.xxl),
+          padding: EdgeInsets.fromLTRB(AppSpace.page, 18, AppSpace.page, MediaQuery.paddingOf(context).bottom + AppSpace.xxl),
           child: AppContentWidth(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const AppPageTitle('Perfil'),
-                const SizedBox(height: 14),
                 _buildHeader(context),
                 if (kDebugMode) _buildDebugInfo(context),
-                const SizedBox(height: 22),
+                const SizedBox(height: 24),
                 const AppSectionLabel('Conta'),
                 const SizedBox(height: 8),
-                AppMenuCard(items: [
-                  AppMenuItemData(
-                      icon: Icons.person_outline_rounded, label: 'Editar perfil', onTap: () => _open(const EditProfileScreen())),
-                  AppMenuItemData(
-                      icon: Icons.lock_outline_rounded, label: 'Alterar senha', onTap: () => _open(const ChangePasswordScreen())),
-                  AppMenuItemData(
-                      icon: Icons.schedule_rounded, label: 'Meu horário', onTap: () => _open(const MyScheduleScreen())),
-                  AppMenuItemData(
-                      icon: Icons.location_on_outlined,
-                      label: 'Locais de trabalho',
-                      onTap: () => _open(const WorkLocationsScreen())),
-                  AppMenuItemData(
-                      icon: Icons.notifications_none_rounded,
-                      label: 'Notificações',
-                      onTap: () => _open(const NotificationsScreen())),
-                ]),
+                ValueListenableBuilder<WorkSchedule>(
+                  valueListenable: ScheduleStore.schedule,
+                  builder: (context, schedule, _) => ValueListenableBuilder<List<KnownLocation>>(
+                    valueListenable: WorkLocations.items,
+                    builder: (context, locations, _) => AppMenuCard(items: [
+                      AppMenuItemData(
+                          icon: Icons.person_outline_rounded, label: 'Editar perfil', onTap: () => _open(const EditProfileScreen())),
+                      AppMenuItemData(
+                          icon: Icons.lock_outline_rounded, label: 'Alterar senha', onTap: () => _open(const ChangePasswordScreen())),
+                      AppMenuItemData(
+                          icon: Icons.schedule_rounded,
+                          label: 'Meu horário',
+                          badge: _scheduleSummary(schedule),
+                          onTap: () => _open(const MyScheduleScreen())),
+                      AppMenuItemData(
+                          icon: Icons.location_on_outlined,
+                          label: 'Locais de trabalho',
+                          badge: locations.isEmpty ? null : '${locations.length} ${locations.length == 1 ? 'local' : 'locais'}',
+                          onTap: () => _open(const WorkLocationsScreen())),
+                      AppMenuItemData(
+                          icon: Icons.notifications_none_rounded,
+                          label: 'Notificações',
+                          onTap: () => _open(const NotificationsScreen())),
+                    ]),
+                  ),
+                ),
                 const SizedBox(height: 22),
                 const AppSectionLabel('Suporte'),
                 const SizedBox(height: 8),
@@ -128,43 +139,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  /// "8h · sáb 4h" — resumo do horário no item do menu.
+  static String _scheduleSummary(WorkSchedule s) {
+    final weekend = s.worksWeekend ? formatGoal(s.weekend.workDuration) : null;
+    final days = [if (s.saturday) 'sáb', if (s.sunday) 'dom'].join('/');
+    return weekend == null ? formatGoal(s.weekdays.workDuration) : '${formatGoal(s.weekdays.workDuration)} · $days $weekend';
+  }
+
+  /// Abertura do Perfil (hero-01): avatar, nome em destaque e selo com cargo/empresa.
   Widget _buildHeader(BuildContext context) {
     return ValueListenableBuilder<UserProfile?>(
       valueListenable: UserSession.current,
       builder: (context, user, _) {
-        final subtitle = user?.subtitle ?? '';
-        return AppCard(
-          padding: const EdgeInsets.all(18),
-          child: Row(
-            children: [
-              AppAvatar(initials: user?.initials ?? '', imageUrl: user?.photoFullUrl, size: 64),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(user?.name ?? '', style: AppText.body(weight: FontWeight.w600).copyWith(fontSize: 17)),
-                    if (subtitle.isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text(subtitle, style: AppText.label(color: context.textSecondary, weight: FontWeight.w400)),
+        final role = user?.role ?? '';
+        final company = user?.company ?? '';
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                AppAvatar(initials: user?.initials ?? '', imageUrl: user?.photoFullUrl, size: 64),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AppHeroTitle([(user?.name ?? '', HeroTone.plain)], fontSize: 24),
+                      const SizedBox(height: 4),
+                      Text(user?.email ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.label(color: context.textTertiary, weight: FontWeight.w400)),
                     ],
-                    const SizedBox(height: 3),
-                    Text(user?.email ?? '',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppText.label(color: context.textTertiary, weight: FontWeight.w400)),
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              IconButton.filledTonal(
-                tooltip: 'Editar perfil',
-                style: IconButton.styleFrom(backgroundColor: context.cardRaised, minimumSize: const Size(44, 44)),
-                icon: Icon(Icons.edit_outlined, size: 18, color: context.textPrimary),
-                onPressed: () => _open(const EditProfileScreen()),
+                const SizedBox(width: 8),
+                AppSquareIconButton(icon: Icons.edit_outlined, tooltip: 'Editar perfil', onPressed: () => _open(const EditProfileScreen())),
+              ],
+            ),
+            if (role.isNotEmpty || company.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              AppEyebrow(
+                tag: role.isNotEmpty ? role : null,
+                text: company.isNotEmpty ? company : 'Adicione sua empresa em Editar perfil',
               ),
             ],
-          ),
+          ],
         );
       },
     );

@@ -225,6 +225,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const AppHeroHeader(
+                      eyebrow: AppEyebrow(tagIcon: Icons.person_outline_rounded, tag: 'Perfil', text: 'Nome, cargo e empresa'),
+                      title: [('Seus dados ', HeroTone.plain), ('aparecem no relatório.', HeroTone.accent)],
+                      fontSize: 28,
+                    ),
+                    const SizedBox(height: 22),
                     Center(child: _buildAvatar(context)),
                     const SizedBox(height: 8),
                     Center(
@@ -233,7 +239,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         children: [
                           TextButton(
                             onPressed: _isUploadingPhoto ? null : _showPhotoOptions,
-                            child: Text('Alterar foto', style: AppText.label(color: context.accentPeach, weight: FontWeight.w600)),
+                            child: Text('Alterar foto', style: AppText.label(color: context.violetText, weight: FontWeight.w600)),
                           ),
                           if (hasPhoto)
                             TextButton(

@@ -29,27 +29,29 @@ class AppColors {
   static const statusBlueStrong = Color(0xFF2F6FDB);
   static const statusRedStrong = Color(0xFFDC3B3B);
 
-  // --- Tema escuro ---
-  static const darkBg = Color(0xFF000000); // void-black
-  static const darkCard = Color(0xFF191919); // graphite
-  static const darkCardRaised = Color(0xFF222222); // superfície dentro de um card / toasts
-  static const darkDivider = Color(0xFF3D3D3D); // charcoal
-  static const darkHairline = Color(0xFF2A2A2A); // separador entre linhas de um card
-  static const darkTextPrimary = Color(0xFFFFFFFF); // paper-white
-  static const darkTextSecondary = Color(0xFFCCCCCC); // fog
-  static const darkTextTertiary = Color(0xFF9E9E9E); // ash
-  static const darkVioletText = Color(0xFFA9A8FF); // violeta legível sobre fundo escuro
+  // Neutros no padrão hero-01 / shadcn: cinzas com leve tom violeta, cards com borda.
 
-  // --- Tema claro (extensão pedida pelo usuário; Umbrel original é dark-only) ---
-  static const lightBg = Color(0xFFFFFFFF);
-  static const lightCard = Color(0xFFF2F1EE);
-  static const lightCardRaised = Color(0xFFFFFFFF);
-  static const lightDivider = Color(0xFFE4E2DD);
-  static const lightHairline = Color(0xFFE4E2DD);
-  static const lightTextPrimary = Color(0xFF101010);
-  static const lightTextSecondary = Color(0xFF4B4B46);
-  // Ajustado (era #797985) para atingir contraste 4.5:1 sobre o card claro.
-  static const lightTextTertiary = Color(0xFF66666F);
+  // --- Tema escuro ---
+  static const darkBg = Color(0xFF09090B);
+  static const darkCard = Color(0xFF131318);
+  static const darkCardRaised = Color(0xFF1B1B21); // superfície dentro de um card / toasts ("muted")
+  static const darkDivider = Color(0xFF2A2A32); // bordas de card, campo e botão contornado
+  static const darkHairline = Color(0xFF24242B); // separador entre linhas de um card
+  static const darkTextPrimary = Color(0xFFF5F5F7);
+  static const darkTextSecondary = Color(0xFFC6C6D0);
+  static const darkTextTertiary = Color(0xFF9A9AA8);
+  static const darkVioletText = Color(0xFFAEADFF); // violeta legível sobre fundo escuro
+
+  // --- Tema claro ---
+  static const lightBg = Color(0xFFFAFAFC);
+  static const lightCard = Color(0xFFFFFFFF);
+  static const lightCardRaised = Color(0xFFF3F3F7);
+  static const lightDivider = Color(0xFFE4E4EC);
+  static const lightHairline = Color(0xFFECECF2);
+  static const lightTextPrimary = Color(0xFF0C0C12);
+  static const lightTextSecondary = Color(0xFF4A4A5C);
+  // Contraste 4.5:1 sobre o card branco.
+  static const lightTextTertiary = Color(0xFF66667A);
   // No claro o peach puro fica com pouco contraste sobre branco — versão
   // mais escura, mesma intenção de marca (ajustada para 4.5:1).
   static const lightEmberPeach = Color(0xFFA8613B);
@@ -98,14 +100,14 @@ class AppText {
 /// Radii padronizados do sistema.
 class AppRadius {
   AppRadius._();
-  static const cards = 16.0;
-  static const tiles = 10.0; // quadradinho de ícone dentro de listas
-  static const inner = 12.0; // blocos dentro de um card (células, avisos)
+  static const cards = 14.0;
+  static const tiles = 9.0; // quadradinho de ícone dentro de listas
+  static const inner = 10.0; // blocos dentro de um card (células, avisos)
   static const icons = 5.0;
   static const pills = 99.0;
   static const images = 12.0;
-  static const inputs = 24.0;
-  static const buttons = 24.0;
+  static const inputs = 12.0;
+  static const buttons = 12.0;
 }
 
 /// Espaçamentos (múltiplos de 4).
@@ -246,4 +248,10 @@ extension AppThemeColors on BuildContext {
   Color get peachSoft => accentPeach.withValues(alpha: isDarkMode ? 0.16 : 0.14);
   Color get cardRaised => isDarkMode ? AppColors.darkCardRaised : AppColors.lightCardRaised;
   Color get hairline => isDarkMode ? AppColors.darkHairline : AppColors.lightHairline;
+
+  /// Borda de cards, campos e botões contornados (padrão shadcn).
+  Color get border => Theme.of(this).dividerColor;
+
+  /// Vermelho de ações destrutivas, legível nos dois temas.
+  Color get dangerText => isDarkMode ? const Color(0xFFF87171) : const Color(0xFFC62828);
 }
